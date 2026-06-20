@@ -1,32 +1,39 @@
 import sys
 import subprocess
 
-iota_counter=0
+# simple iota for op ids
+iota_counter = 0
+
 def iota(reset=False):
     global iota_counter
     if reset:
-        iota_counter =0
+        iota_counter = 0
     result = iota_counter
-    iota_counter +=1
+    iota_counter += 1
     return result
 
-OP_PUSH=iota()
-OP_PLUS=iota()
-OP_MINUS=iota()
-OP_DUMP=iota()
-COUNT_OPS=iota()
+OP_PUSH = iota()
+OP_PLUS = iota()
+OP_MINUS = iota()
+OP_DUMP = iota()
+COUNT_OPS = iota()
 
 
 def push(x):
-    return(OP_PUSH,x)
+    return (OP_PUSH, x)
+
 
 def plus():
-    return(OP_PLUS,)
+    return (OP_PLUS,)
+
+
 def minus():
     return (OP_MINUS,)
 
+
 def dump():
     return (OP_DUMP,)
+
 
 def simulate(program):
     stack = []
@@ -37,22 +44,80 @@ def simulate(program):
         elif op[0] == OP_PLUS:
             a = stack.pop()
             b = stack.pop()
-            stack.append(a+b)
+            stack.append(a + b)
         elif op[0] == OP_MINUS:
             a = stack.pop()
             b = stack.pop()
-            stack.append(b-a)
+            stack.append(b - a)
         elif op[0] == OP_DUMP:
             a = stack.pop()
             print(a)
         else:
             assert False, "unreachable"
 
+
 def compile(program, out_file_path):
+    """Emit NASM assembly containing a `dump` function and a `_start` entry
+    that executes the given `program`. This implementation emits the full
+    `dump` function (so no external `main`/`dump.c` is required).
+    """
     with open(out_file_path, "w") as out:
-        out.write("extern dump\n")
-        out.write("global _start\n")
         out.write("segment .text\n")
+        out.write("global _start\n")
+        out.write("\n")
+
+        # dump function - writes decimal representation of rdi to fd 1
+        out.write("dump:\n")
+        out.write("    push rbp\n")
+        out.write("    mov rbp, rsp\n")
+        out.write("    sub rsp, 64\n")
+        out.write("    mov qword [rbp-56], rdi\n")
+        out.write("    mov qword [rbp-8], 1\n")
+        out.write("    mov eax, 32\n")
+        out.write("    sub rax, qword [rbp-8]\n")
+        out.write("    mov byte [rbp-48 + rax], 10\n")
+        out.write(".L2:\n")
+        out.write("    mov rcx, qword [rbp-56]\n")
+        out.write("    mov rax, rcx\n")
+        out.write("    mov rdx, -3689348814741910323\n")
+        out.write("    mul rdx\n")
+        out.write("    shr rdx, 3\n")
+        out.write("    mov rax, rdx\n")
+        out.write("    shl rax, 2\n")
+        out.write("    add rax, rdx\n")
+        out.write("    add rax, rax\n")
+        out.write("    sub rcx, rax\n")
+        out.write("    mov rdx, rcx\n")
+        out.write("    mov eax, edx\n")
+        out.write("    lea rdx, [rax + 48]\n")
+        out.write("    mov eax, 31\n")
+        out.write("    sub rax, qword [rbp-8]\n")
+        out.write("    mov byte [rbp-48 + rax], dl\n")
+        out.write("    add qword [rbp-8], 1\n")
+        out.write("    mov rax, qword [rbp-56]\n")
+        out.write("    mov rdx, -3689348814741910323\n")
+        out.write("    mul rdx\n")
+        out.write("    mov rax, rdx\n")
+        out.write("    shr rax, 3\n")
+        out.write("    mov qword [rbp-56], rax\n")
+        out.write("    cmp qword [rbp-56], 0\n")
+        out.write("    jne .L2\n")
+        out.write("    mov eax, 32\n")
+        out.write("    sub rax, qword [rbp-8]\n")
+        out.write("    lea rdx, [rbp-48]\n")
+        out.write("    lea rcx, [rdx + rax]\n")
+        out.write("    mov rax, qword [rbp-8]\n")
+        out.write("    mov rdx, rax\n")
+        out.write("    mov rsi, rcx\n")
+        out.write("    mov rdi, 1\n")
+        out.write("    mov rax, 1\n")
+        out.write("    syscall\n")
+        out.write("    nop\n")
+        out.write("    leave\n")
+        out.write("    ret\n")
+        out.write("\n")
+
+        # _start - execute program then exit
         out.write("_start:\n")
 
         for op in program:
@@ -62,20 +127,19 @@ def compile(program, out_file_path):
                 out.write("    push %d\n" % op[1])
             elif op[0] == OP_PLUS:
                 out.write("   ;; -- plus --\n")
-                out.write("   pop rax\n")
-                out.write("   pop rbx\n")
+                out.write("    pop rax\n")
+                out.write("    pop rbx\n")
                 out.write("    add rax, rbx\n")
                 out.write("    push rax\n")
             elif op[0] == OP_MINUS:
                 out.write("   ;; -- minus --\n")
-                out.write("   pop rax\n")
-                out.write("   pop rbx\n")
-                out.write("    sub rax, rbx\n")
-                out.write("    push rax\n")
+                out.write("    pop rax\n")
+                out.write("    pop rbx\n")
+                out.write("    sub rbx, rax\n")
+                out.write("    push rbx\n")
             elif op[0] == OP_DUMP:
                 out.write("    ;; -- dump --\n")
-                out.write("    pop rax\n")
-                out.write("    mov rdi, rax\n")
+                out.write("    pop rdi\n")
                 out.write("    call dump\n")
             else:
                 assert False, "unreachable"
@@ -84,19 +148,22 @@ def compile(program, out_file_path):
         out.write("    mov rdi, 0\n")
         out.write("    syscall\n")
 
-     
 
-program = [push(34),push(35),plus(),dump(),push(500), push(80), minus(), push(420), dump()]
+# example program
+program = [push(34), push(35), plus(), dump(), push(500), push(80), minus(), push(420), dump()]
+
 
 def usage():
-        print("USAGE: TORCH <SUBCOMMAND> [ARGS]")
-        print("SUBCOMMANDS:")
-        print("    sim    Simulate the program")
-        print("    com    Compiler the program")
+    print("USAGE: TORCH <SUBCOMMAND> [ARGS]")
+    print("SUBCOMMANDS:")
+    print("    sim    Simulate the program")
+    print("    com    Compile the program")
+
 
 def call_cmd(cmd):
     print(cmd)
     subprocess.call(cmd)
+
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
@@ -110,11 +177,10 @@ if __name__ == '__main__':
         simulate(program)
     elif subcommand == "com":
         compile(program, "output.asm")
-        call_cmd(["nasm","-felf64","output.asm"])
-        # compile and link with dump.c
-        call_cmd(["gcc","output.o","dump.c","-o","output"])
+        call_cmd(["nasm", "-felf64", "output.asm"])
+        # link only the generated object (dump implemented in assembly)
+        call_cmd(["ld", "-o", "output", "output.o"])
     else:
         usage()
         print("ERR: unkown subcommand %s" % (subcommand))
         exit(1)
-
