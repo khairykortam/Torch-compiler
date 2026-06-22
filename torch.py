@@ -15,6 +15,7 @@ def iota(reset=False):
 OP_PUSH = iota()
 OP_PLUS = iota()
 OP_MINUS = iota()
+OP_EQUAL = iota()
 OP_DUMP = iota()
 COUNT_OPS = iota()
 
@@ -34,11 +35,14 @@ def minus():
 def dump():
     return (OP_DUMP,)
 
+def equal():
+    return (OP_EQUAL,)
+
 
 def simulate(program):
     stack = []
     for op in program:
-        assert COUNT_OPS == 4, "Exhaustive handling of operations"
+        assert COUNT_OPS == 5, "Exhaustive handling of operations"
         if op[0] == OP_PUSH:
             stack.append(op[1])
         elif op[0] == OP_PLUS:
@@ -49,6 +53,10 @@ def simulate(program):
             a = stack.pop()
             b = stack.pop()
             stack.append(b - a)
+        elif op[0] == OP_EQUAL:
+            a = stack.pop()
+            b = stack.pop()
+            stack.append(int(a==b))
         elif op[0] == OP_DUMP:
             a = stack.pop()
             print(a)
@@ -57,11 +65,9 @@ def simulate(program):
 
 
 def compile(program, out_file_path):
-    """Emit NASM assembly containing a `dump` function and a `_start` entry
-    that executes the given `program`. This implementation emits the full
-    `dump` function (so no external `main`/`dump.c` is required).
-    """
+    # compiling the code
     with open(out_file_path, "w") as out:
+        out.write("BITS 64\n")
         out.write("segment .text\n")
         out.write("global _start\n")
         out.write("\n")
@@ -121,7 +127,7 @@ def compile(program, out_file_path):
         out.write("_start:\n")
 
         for op in program:
-            assert COUNT_OPS == 4, "Exhaustive handling of ops in compilation"
+            assert COUNT_OPS == 5, "Exhaustive handling of ops in compilation"
             if op[0] == OP_PUSH:
                 out.write("   ;; -- push %d --\n" % op[1])
                 out.write("    push %d\n" % op[1])
@@ -141,6 +147,15 @@ def compile(program, out_file_path):
                 out.write("    ;; -- dump --\n")
                 out.write("    pop rdi\n")
                 out.write("    call dump\n")
+            elif op[0] == OP_EQUAL:
+                out.write("    ;; equal -- \n")
+                out.write("    mov rcx, 0\n")
+                out.write("    mov rdx, 1\n")
+                out.write("    pop rax\n")
+                out.write("    pop rbx\n")
+                out.write("    cmp rax, rbx\n")
+                out.write("    cmove rcx, rdx\n")
+
             else:
                 assert False, "unreachable"
 
@@ -157,7 +172,7 @@ def usage():
     print("    com <file>    Compile the program")
 
 def parse_token_as_op(token):
-    assert COUNT_OPS == 4, "Exhuastive op handling in parse"
+    assert COUNT_OPS == 5, "Exhuastive op handling in parse"
     (file_path, row, col, word) = token
     if word == '+':
         return plus()
@@ -165,6 +180,8 @@ def parse_token_as_op(token):
         return minus()
     elif word == '<':
         return dump()
+    elif word == '=':
+        return equal()
     else:
         try:
             return push(int(word))
@@ -172,18 +189,21 @@ def parse_token_as_op(token):
             print("%s:%d:%d: %s" % (file_path, row, col,err ))
             exit(1)
 
-    
 def find_col(line,start,predicate):
-    while start < len(line) and not predicate(line[start]):
-        start += 1
-        return start
+    i = start
+    while i < len(line) and not predicate(line[i]):
+        i += 1
+    return i
     
 def lex_line(line):
-    col =find_col(line, 0, lambda x: not x.isspace())
+    # find first non-space column
+    col = find_col(line, 0, lambda c: not c.isspace())
     while col < len(line):
-        col_end = find_col(line, col, lambda x: not x.isspace())
-        yield (col,line[col:col_end])
-    col =find_col(line,col_end, lambda x: not x.isspace())
+        # find end of token (first space after col)
+        col_end = find_col(line, col, lambda c: c.isspace())
+        yield (col, line[col:col_end])
+        # find start of next token
+        col = find_col(line, col_end, lambda c: not c.isspace())
 
 
 def lex_file(file_path):

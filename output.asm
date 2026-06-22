@@ -1,3 +1,4 @@
+BITS 64
 segment .text
 global _start
 
@@ -72,6 +73,20 @@ _start:
     pop rbx
     sub rbx, rax
     push rbx
+    ;; -- dump --
+    pop rdi
+    call dump
+   ;; -- push 50 --
+    push 50
+   ;; -- push 50 --
+    push 50
+    ;; equal -- 
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
     ;; -- dump --
     pop rdi
     call dump
