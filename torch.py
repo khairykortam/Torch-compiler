@@ -149,38 +149,83 @@ def compile(program, out_file_path):
         out.write("    syscall\n")
 
 
-# example program
-program = [push(34), push(35), plus(), dump(), push(500), push(80), minus(), push(420), dump()]
-
 
 def usage():
-    print("USAGE: TORCH <SUBCOMMAND> [ARGS]")
+    print("USAGE: TORCH <SUBCOMMAND> <FILE>")
     print("SUBCOMMANDS:")
-    print("    sim    Simulate the program")
-    print("    com    Compile the program")
+    print("    sim <file>    Simulate the program")
+    print("    com <file>    Compile the program")
+
+def parse_token_as_op(token):
+    assert COUNT_OPS == 4, "Exhuastive op handling in parse"
+    (file_path, row, col, word) = token
+    if word == '+':
+        return plus()
+    elif word == '-':
+        return minus()
+    elif word == '<':
+        return dump()
+    else:
+        try:
+            return push(int(word))
+        except ValueError as err:
+            print("%s:%d:%d: %s" % (file_path, row, col,err ))
+            exit(1)
+
+    
+def find_col(line,start,predicate):
+    while start < len(line) and not predicate(line[start]):
+        start += 1
+        return start
+    
+def lex_line(line):
+    col =find_col(line, 0, lambda x: not x.isspace())
+    while col < len(line):
+        col_end = find_col(line, col, lambda x: not x.isspace())
+        yield (col,line[col:col_end])
+    col =find_col(line,col_end, lambda x: not x.isspace())
+
+
+def lex_file(file_path):
+    with open(file_path, "r") as f:
+       return [(file_path,row,col,token) 
+             for (row,line) in enumerate(f.readlines())
+             for (col,token) in lex_line(line)]
+
+
+def load_program_from_file(file_path):
+   return  [parse_token_as_op(token) for token in lex_file(file_path)]
 
 
 def call_cmd(cmd):
     print(cmd)
     subprocess.call(cmd)
 
-
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
+    if len(sys.argv) < 3:
         usage()
-        print("ERR: no subcommand is provided")
+        print("ERR: no subcommand or file provided")
         exit(1)
 
+    prog_name = sys.argv[0]
     subcommand = sys.argv[1]
+    file_path = sys.argv[2]
+
+    program = load_program_from_file(file_path)
 
     if subcommand == "sim":
         simulate(program)
     elif subcommand == "com":
+        if len(sys.argv) < 1:
+            usage(prog_name)
+            print("ERR: no input file provided for compilation")
+            exit(1)
+            program = load_program_from_file(program_path) 
         compile(program, "output.asm")
         call_cmd(["nasm", "-felf64", "output.asm"])
         # link only the generated object (dump implemented in assembly)
         call_cmd(["ld", "-o", "output", "output.o"])
     else:
         usage()
-        print("ERR: unkown subcommand %s" % (subcommand))
+        print("ERR: unknown subcommand %s" % (subcommand))
         exit(1)
