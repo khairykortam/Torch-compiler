@@ -53,59 +53,55 @@ dump:
 
 global _start
 _start:
+addr_0:
    ;; -- push 10 --
     push 10
+addr_1:
+    ;; -- while --
+addr_2:
     ;; -- dup --
     pop rax
     push rax
     push rax
-    ;; -- dump --
-    pop rdi
-    call dump
-    ;; -- dup --
-    pop rax
-    push rax
-    push rax
-    ;; -- dump --
-    pop rdi
-    call dump
-    ;; -- dup --
-    pop rax
-    push rax
-    push rax
-    ;; -- dump --
-    pop rdi
-    call dump
-   ;; -- push 69 --
-    push 69
-   ;; -- push 420 --
-    push 420
+addr_3:
+   ;; -- push 0 --
+    push 0
+addr_4:
     ;; -- gt -- 
     mov rcx, 0
     mov rdx, 1
     pop rax
     pop rbx
-    cmp rax, rbx
+    cmp rbx, rax
     cmovg rcx, rdx
     push rcx
-    ;;  -- if --
+addr_5:
+    ;; -- do  --
     pop rax
-    test rax, rax
-    jz addr_14
+ test rax, rax
+    jz addr_11
+addr_6:
+    ;; -- dup --
+    pop rax
+    push rax
+    push rax
+addr_7:
+    ;; -- dump --
+    pop rdi
+    call dump
+addr_8:
    ;; -- push 1 --
     push 1
-    ;; -- dump --
-    pop rdi
-    call dump
-    ;; -- else --
-    jmp addr_16
-addr_14:
-   ;; -- push 0 --
-    push 0
-    ;; -- dump --
-    pop rdi
-    call dump
-addr_16:
+addr_9:
+   ;; -- minus --
+    pop rax
+    pop rbx
+    sub rbx, rax
+    push rbx
+addr_10:
+    ;; --  end --
+    jmp addr_1
+addr_11:
     mov rax, 60
     mov rdi, 0
     syscall

@@ -23,6 +23,8 @@ OP_ELSE = iota()
 OP_END = iota()
 OP_DUP = iota()
 OP_GT= iota()
+OP_WHILE = iota()
+OP_DO = iota()
 COUNT_OPS = iota()
 
 
@@ -56,11 +58,17 @@ def dup():
 def gt():
     return (OP_GT,)
 
+def _while():
+    return (OP_WHILE,)
+
+def _do():
+    return (OP_DO,)
+
 def simulate(program):
     stack = []
     ip = 0
     while ip < len(program):
-        assert COUNT_OPS == 10, "Exhaustive handling of operations"
+        assert COUNT_OPS == 12, "Exhaustive handling of operations"
         op = program[ip]
         if op[0] == OP_PUSH:
             stack.append(op[1])
@@ -92,7 +100,8 @@ def simulate(program):
             assert len(op) >= 2, "else doesn't have a reference to the end of its block."
             ip = op[1]
         elif op[0] == OP_END:
-         ip+=1
+         assert len(op) >= 2, "end doesn't have a reference to the next instruction."
+         ip = op[1]
         elif op[0] == OP_DUMP:
             a = stack.pop()
             print(a)
@@ -105,8 +114,17 @@ def simulate(program):
         elif op[0] == OP_GT:
             b = stack.pop()
             a = stack.pop()
-            stack.append(int(a<b))
+            stack.append(int(a> b))
             ip+=1
+        elif op[0] == OP_WHILE:
+            ip += 1
+        elif op[0] == OP_DO:
+            a = stack.pop()
+            if a == 0:
+                 assert len(op) >= 2, "do instruction doesn't have a reference to the end of its block."
+                 ip = op[1]
+            else: 
+                ip+=1
         else:
             assert False, "unreachable"
 
@@ -175,7 +193,8 @@ def compile(program, out_file_path):
 
         for ip in range(len(program)):
             op = program[ip]
-            assert COUNT_OPS == 10, "Exhaustive handling of ops in compilation"
+            assert COUNT_OPS == 12, "Exhaustive handling of ops in compilation"
+            out.write("addr_%d:\n" % ip)
             if op[0] == OP_PUSH:
                 out.write("   ;; -- push %d --\n" % op[1])
                 out.write("    push %d\n" % op[1])
@@ -214,9 +233,11 @@ def compile(program, out_file_path):
              out.write("    ;; -- else --\n")
              assert len(op)>= 2, "else instruction does not have a reference to the end of its block."
              out.write("    jmp addr_%d\n" % op[1])
-             out.write("addr_%d:\n" % (ip + 1))
             elif op[0] == OP_END:
-             out.write("addr_%d:\n"%ip)
+                assert len(op) >= 2, "end instruction does not have a reference to the next instruction to jump to"
+                out.write("    ;; --  end --\n")
+                if ip + 1 != op[1]:
+                 out.write("    jmp addr_%d\n" % op[1])
             elif op[0] == OP_DUP:
                 out.write("    ;; -- dup --\n")
                 out.write("    pop rax\n")
@@ -228,12 +249,23 @@ def compile(program, out_file_path):
                 out.write("    mov rdx, 1\n")
                 out.write("    pop rax\n")
                 out.write("    pop rbx\n")
-                out.write("    cmp rax, rbx\n")
+                out.write("    cmp rbx, rax\n")
                 out.write("    cmovg rcx, rdx\n")
                 out.write("    push rcx\n")
+            elif op[0] == OP_WHILE:
+                out.write("    ;; -- while --\n")
+
+            elif op[0] == OP_DO:
+                out.write("    ;; -- do  --\n")
+                out.write("    pop rax\n")
+                out.write(" test rax, rax\n")
+                assert len(op) >=2, "do instruction does not have a reference to the end of its block"
+                out.write("    jz addr_%d\n" % op[1])
             else:
                 assert False, "unreachable"
 
+        # label for the end of the program (targets may jump to addr_len)
+        out.write("addr_%d:\n" % len(program))
         out.write("    mov rax, 60\n")
         out.write("    mov rdi, 0\n")
         out.write("    syscall\n")
@@ -247,7 +279,7 @@ def usage():
     print("    com <file>    Compile the program")
 
 def parse_token_as_op(token):
-    assert COUNT_OPS == 10, "Exhuastive op handling in parse"
+    assert COUNT_OPS == 12, "Exhuastive op handling in parse"
     (file_path, row, col, word) = token
     if word == '+':
         return plus()
@@ -267,6 +299,10 @@ def parse_token_as_op(token):
         return dup()
     elif word == '>':
         return gt()
+    elif word == 'while':
+        return _while()
+    elif word == 'do':
+        return _do()
     else:
         try:
             return push(int(word))
@@ -278,7 +314,7 @@ def crossreference_block(program):
     stack = []
     for ip in range(len(program)):
         op = program[ip]
-        assert COUNT_OPS == 10, "Exhaustive handling of ops in cross-ref"
+        assert COUNT_OPS == 12, "Exhaustive handling of ops in cross-ref"
         if op[0] == OP_IF:
             stack.append(ip)
         elif op[0] == OP_ELSE:
@@ -288,11 +324,24 @@ def crossreference_block(program):
          stack.append(ip)
         elif op[0] == OP_END:
             block_ip = stack.pop()
+            # close an if/else block
             if program[block_ip][0] == OP_IF or program[block_ip][0] == OP_ELSE:
                 program[block_ip] = (program[block_ip][0], ip)
-            # elif program[block_ip][0] == OP_WHILE:
+                program[ip] = (OP_END, ip+1)
+            # close a do...while block
+            elif program[block_ip][0] == OP_DO:
+                assert len(program[block_ip]) >= 2
+                program[ip] = (OP_END, program[block_ip][1])
+                program[block_ip] = (OP_DO, ip+1)
             else:
-             assert False , "End just can't"
+                assert False, "End just can't do it yete"
+        elif op[0] == OP_WHILE:
+             stack.append(ip)
+        elif op[0] == OP_DO:
+            while_ip = stack.pop()
+            program[ip] = (OP_DO, while_ip)
+            stack.append(ip)
+
     return program
 
 def find_col(line,start,predicate):

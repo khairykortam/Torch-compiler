@@ -1,9 +1,6 @@
-10 
-dup <<
-dup <<
-dup <<
-1000 420 > if
-1 <<
-else 
-0 <<
+
+ 10
+ while dup 0 > do
+ dup <<
+ 1 -
  end
