@@ -51,6 +51,7 @@ dump:
     leave
     ret
 
+global _start
 _start:
    ;; -- push 34 --
     push 34

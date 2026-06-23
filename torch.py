@@ -17,6 +17,8 @@ OP_PLUS = iota()
 OP_MINUS = iota()
 OP_EQUAL = iota()
 OP_DUMP = iota()
+OP_IF = iota()
+OP_END = iota()
 COUNT_OPS = iota()
 
 
@@ -37,29 +39,50 @@ def dump():
 
 def equal():
     return (OP_EQUAL,)
+def iff():
+    return (OP_IF,)
+def end():
+    return (OP_END,)
 
 
 def simulate(program):
     stack = []
-    for op in program:
-        assert COUNT_OPS == 5, "Exhaustive handling of operations"
+    ip = 0
+    while ip < len(program):
+        assert COUNT_OPS == 7, "Exhaustive handling of operations"
+        op = program[ip]
         if op[0] == OP_PUSH:
             stack.append(op[1])
+            ip+=1
         elif op[0] == OP_PLUS:
             a = stack.pop()
             b = stack.pop()
             stack.append(a + b)
+            ip+=1
         elif op[0] == OP_MINUS:
             a = stack.pop()
             b = stack.pop()
             stack.append(b - a)
+            ip+=1
         elif op[0] == OP_EQUAL:
             a = stack.pop()
             b = stack.pop()
             stack.append(int(a==b))
+            ip+=1
+        elif op[0] == OP_IF:
+            a = stack.pop()
+            if a == 0:
+                assert len(op) >= 2, "if isn't ifing yet"
+# jump instruction 
+                ip = op[1]
+            else:
+                ip+=1
+        elif op[0] == OP_END:
+         ip+=1
         elif op[0] == OP_DUMP:
             a = stack.pop()
             print(a)
+            ip+=1
         else:
             assert False, "unreachable"
 
@@ -122,12 +145,13 @@ def compile(program, out_file_path):
         out.write("    leave\n")
         out.write("    ret\n")
         out.write("\n")
-
+        out.write("global _start\n")
         # _start - execute program then exit
         out.write("_start:\n")
 
-        for op in program:
-            assert COUNT_OPS == 5, "Exhaustive handling of ops in compilation"
+        for ip in range(len(program)):
+            op = program[ip]
+            assert COUNT_OPS == 7, "Exhaustive handling of ops in compilation"
             if op[0] == OP_PUSH:
                 out.write("   ;; -- push %d --\n" % op[1])
                 out.write("    push %d\n" % op[1])
@@ -155,7 +179,15 @@ def compile(program, out_file_path):
                 out.write("    pop rbx\n")
                 out.write("    cmp rax, rbx\n")
                 out.write("    cmove rcx, rdx\n")
-
+                out.write("    push rcx\n")
+            elif op[0] == OP_IF:
+                out.write("    ;;  -- if --\n")
+                out.write("    pop rax\n")
+                out.write("    test rax, rax\n")
+                assert len(op) == 2, "if isn't ifing yet"
+                out.write("    jz addr_%d\n" % op[1])
+            elif op[0] == OP_END:
+                out.write("addr_%d:\n" % ip)
             else:
                 assert False, "unreachable"
 
@@ -172,7 +204,7 @@ def usage():
     print("    com <file>    Compile the program")
 
 def parse_token_as_op(token):
-    assert COUNT_OPS == 5, "Exhuastive op handling in parse"
+    assert COUNT_OPS == 7, "Exhuastive op handling in parse"
     (file_path, row, col, word) = token
     if word == '+':
         return plus()
@@ -182,12 +214,31 @@ def parse_token_as_op(token):
         return dump()
     elif word == '=':
         return equal()
+    elif word =='if':
+        return iff()
+    elif word == 'end':
+        return end()
     else:
         try:
             return push(int(word))
         except ValueError as err:
             print("%s:%d:%d: %s" % (file_path, row, col,err ))
             exit(1)
+
+def crossreference_block(program):
+    stack = []
+    for ip in range(len(program)):
+        op = program[ip]
+        assert COUNT_OPS == 7, "Exhaustive handling of ops in cross-ref"
+        if op[0] == OP_IF:
+            stack.append(ip)
+            assert False, "still"
+        elif op[0] == OP_END:
+            if_ip = stack.pop()
+            assert program[if_ip][0] == OP_IF, "End"
+            program[if_ip] = (OP_IF, ip)
+            assert False, "still"
+    return program
 
 def find_col(line,start,predicate):
     i = start
@@ -208,13 +259,15 @@ def lex_line(line):
 
 def lex_file(file_path):
     with open(file_path, "r") as f:
-       return [(file_path,row,col,token) 
-             for (row,line) in enumerate(f.readlines())
-             for (col,token) in lex_line(line)]
+       for (row,line) in enumerate(f.readlines()):
+            for (col,token) in lex_line(line):
+                yield(file_path,row,col,token)
+             
+            
 
 
 def load_program_from_file(file_path):
-   return  [parse_token_as_op(token) for token in lex_file(file_path)]
+   return  crossreference_block([parse_token_as_op(token) for token in lex_file(file_path)])
 
 
 def call_cmd(cmd):
