@@ -1,5 +1,6 @@
 import sys
 import subprocess
+from os import path
 
 # simple iota for op ids
 iota_counter = 0
@@ -20,6 +21,7 @@ OP_DUMP = iota()
 OP_IF = iota()
 OP_ELSE = iota()
 OP_END = iota()
+OP_DUP = iota()
 COUNT_OPS = iota()
 
 
@@ -47,11 +49,14 @@ def end():
 def _else():
     return (OP_ELSE,)
 
+def dup():
+    return (OP_DUP,)
+
 def simulate(program):
     stack = []
     ip = 0
     while ip < len(program):
-        assert COUNT_OPS == 8, "Exhaustive handling of operations"
+        assert COUNT_OPS == 9, "Exhaustive handling of operations"
         op = program[ip]
         if op[0] == OP_PUSH:
             stack.append(op[1])
@@ -88,6 +93,12 @@ def simulate(program):
             a = stack.pop()
             print(a)
             ip+=1
+        elif op[0] == OP_DUP:
+          a = stack.pop()
+          stack.append(a)
+          stack.append(a)
+          ip +=1
+
         else:
             assert False, "unreachable"
 
@@ -156,7 +167,7 @@ def compile(program, out_file_path):
 
         for ip in range(len(program)):
             op = program[ip]
-            assert COUNT_OPS == 8, "Exhaustive handling of ops in compilation"
+            assert COUNT_OPS == 9, "Exhaustive handling of ops in compilation"
             if op[0] == OP_PUSH:
                 out.write("   ;; -- push %d --\n" % op[1])
                 out.write("    push %d\n" % op[1])
@@ -198,6 +209,11 @@ def compile(program, out_file_path):
              out.write("addr_%d:\n" % (ip + 1))
             elif op[0] == OP_END:
              out.write("addr_%d:\n"%ip)
+            elif op[0] == OP_DUP:
+                out.write("    ;; -- dup --\n")
+                out.write("    pop rax\n")
+                out.write("    push rax\n")
+                out.write("    push rax\n")
             else:
                 assert False, "unreachable"
 
@@ -214,7 +230,7 @@ def usage():
     print("    com <file>    Compile the program")
 
 def parse_token_as_op(token):
-    assert COUNT_OPS == 8, "Exhuastive op handling in parse"
+    assert COUNT_OPS == 9, "Exhuastive op handling in parse"
     (file_path, row, col, word) = token
     if word == '+':
         return plus()
@@ -230,6 +246,8 @@ def parse_token_as_op(token):
         return end()
     elif word == 'else':
         return _else()
+    elif word == 'dup':
+        return dup()
     else:
         try:
             return push(int(word))
@@ -241,7 +259,7 @@ def crossreference_block(program):
     stack = []
     for ip in range(len(program)):
         op = program[ip]
-        assert COUNT_OPS == 8, "Exhaustive handling of ops in cross-ref"
+        assert COUNT_OPS == 9, "Exhaustive handling of ops in cross-ref"
         if op[0] == OP_IF:
             stack.append(ip)
         elif op[0] == OP_ELSE:
@@ -274,7 +292,7 @@ def lex_line(line):
         # find start of next token
         col = find_col(line, col_end, lambda c: not c.isspace())
 
-
+# ADD comments
 def lex_file(file_path):
     with open(file_path, "r") as f:
        for (row,line) in enumerate(f.readlines()):
