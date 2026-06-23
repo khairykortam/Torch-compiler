@@ -22,6 +22,7 @@ OP_IF = iota()
 OP_ELSE = iota()
 OP_END = iota()
 OP_DUP = iota()
+OP_GT= iota()
 COUNT_OPS = iota()
 
 
@@ -52,11 +53,14 @@ def _else():
 def dup():
     return (OP_DUP,)
 
+def gt():
+    return (OP_GT,)
+
 def simulate(program):
     stack = []
     ip = 0
     while ip < len(program):
-        assert COUNT_OPS == 9, "Exhaustive handling of operations"
+        assert COUNT_OPS == 10, "Exhaustive handling of operations"
         op = program[ip]
         if op[0] == OP_PUSH:
             stack.append(op[1])
@@ -98,7 +102,11 @@ def simulate(program):
           stack.append(a)
           stack.append(a)
           ip +=1
-
+        elif op[0] == OP_GT:
+            b = stack.pop()
+            a = stack.pop()
+            stack.append(int(a<b))
+            ip+=1
         else:
             assert False, "unreachable"
 
@@ -167,7 +175,7 @@ def compile(program, out_file_path):
 
         for ip in range(len(program)):
             op = program[ip]
-            assert COUNT_OPS == 9, "Exhaustive handling of ops in compilation"
+            assert COUNT_OPS == 10, "Exhaustive handling of ops in compilation"
             if op[0] == OP_PUSH:
                 out.write("   ;; -- push %d --\n" % op[1])
                 out.write("    push %d\n" % op[1])
@@ -214,6 +222,15 @@ def compile(program, out_file_path):
                 out.write("    pop rax\n")
                 out.write("    push rax\n")
                 out.write("    push rax\n")
+            elif op[0] == OP_GT:
+                out.write("    ;; -- gt -- \n")
+                out.write("    mov rcx, 0\n")
+                out.write("    mov rdx, 1\n")
+                out.write("    pop rax\n")
+                out.write("    pop rbx\n")
+                out.write("    cmp rax, rbx\n")
+                out.write("    cmovg rcx, rdx\n")
+                out.write("    push rcx\n")
             else:
                 assert False, "unreachable"
 
@@ -230,13 +247,13 @@ def usage():
     print("    com <file>    Compile the program")
 
 def parse_token_as_op(token):
-    assert COUNT_OPS == 9, "Exhuastive op handling in parse"
+    assert COUNT_OPS == 10, "Exhuastive op handling in parse"
     (file_path, row, col, word) = token
     if word == '+':
         return plus()
     elif word == '-':
         return minus()
-    elif word == '<':
+    elif word == '<<':
         return dump()
     elif word == '=':
         return equal()
@@ -248,6 +265,8 @@ def parse_token_as_op(token):
         return _else()
     elif word == 'dup':
         return dup()
+    elif word == '>':
+        return gt()
     else:
         try:
             return push(int(word))
@@ -259,7 +278,7 @@ def crossreference_block(program):
     stack = []
     for ip in range(len(program)):
         op = program[ip]
-        assert COUNT_OPS == 9, "Exhaustive handling of ops in cross-ref"
+        assert COUNT_OPS == 10, "Exhaustive handling of ops in cross-ref"
         if op[0] == OP_IF:
             stack.append(ip)
         elif op[0] == OP_ELSE:
