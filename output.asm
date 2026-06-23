@@ -88,9 +88,67 @@ _start:
     pop rbx
     cmp rax, rbx
     cmove rcx, rdx
+    push rcx
     ;; -- dump --
     pop rdi
     call dump
+   ;; -- push 34 --
+    push 34
+   ;; -- push 35 --
+    push 35
+   ;; -- plus --
+    pop rax
+    pop rbx
+    add rax, rbx
+    push rax
+   ;; -- push 69 --
+    push 69
+    ;; equal -- 
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+    ;;  -- if --
+    pop rax
+    test rax, rax
+    jz addr_29
+   ;; -- push 1 --
+    push 1
+    ;;  -- if --
+    pop rax
+    test rax, rax
+    jz addr_23
+   ;; -- push 34 --
+    push 34
+    ;; -- dump --
+    pop rdi
+    call dump
+    ;; -- else --
+    jmp addr_25
+addr_23:
+   ;; -- push 35 --
+    push 35
+    ;; -- dump --
+    pop rdi
+    call dump
+addr_25:
+   ;; -- push 420 --
+    push 420
+    ;; -- dump --
+    pop rdi
+    call dump
+    ;; -- else --
+    jmp addr_31
+addr_29:
+   ;; -- push 666 --
+    push 666
+    ;; -- dump --
+    pop rdi
+    call dump
+addr_31:
     mov rax, 60
     mov rdi, 0
     syscall
