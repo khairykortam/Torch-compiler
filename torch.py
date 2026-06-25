@@ -25,7 +25,12 @@ OP_DUP = iota()
 OP_GT= iota()
 OP_WHILE = iota()
 OP_DO = iota()
+OP_MEM = iota()
+OP_LOAD = iota()
+OP_STORE = iota()
 COUNT_OPS = iota()
+
+MEM_CAPACITY = 640000
 
 
 def push(x):
@@ -63,12 +68,21 @@ def _while():
 
 def _do():
     return (OP_DO,)
+def mem():
+    return (OP_MEM,)
+
+def load():
+    return (OP_LOAD)
+
+def store():
+    return (OP_STORE)
 
 def simulate(program):
     stack = []
+    mem = bytearray(MEM_CAPACITY)
     ip = 0
     while ip < len(program):
-        assert COUNT_OPS == 12, "Exhaustive handling of operations"
+        assert COUNT_OPS == 15, "Exhaustive handling of operations"
         op = program[ip]
         if op[0] == OP_PUSH:
             stack.append(op[1])
@@ -125,6 +139,18 @@ def simulate(program):
                  ip = op[1]
             else: 
                 ip+=1
+        elif op[0] == OP_MEM:
+            stack.append(0)
+            ip+= 1
+        elif op[0] == OP_LOAD:
+            addr = stack.pop()
+            byte = mem[addr]
+            stack.append(byte)
+        elif op[0] == OP_STORE:
+            value = stack.pop()
+            addr = stack.pop()
+            mem[addr] = value & 0xFF
+            ip+=1
         else:
             assert False, "unreachable"
 
@@ -193,7 +219,7 @@ def compile(program, out_file_path):
 
         for ip in range(len(program)):
             op = program[ip]
-            assert COUNT_OPS == 12, "Exhaustive handling of ops in compilation"
+            assert COUNT_OPS == 15, "Exhaustive handling of ops in compilation"
             out.write("addr_%d:\n" % ip)
             if op[0] == OP_PUSH:
                 out.write("   ;; -- push %d --\n" % op[1])
@@ -235,7 +261,7 @@ def compile(program, out_file_path):
              out.write("    jmp addr_%d\n" % op[1])
             elif op[0] == OP_END:
                 assert len(op) >= 2, "end instruction does not have a reference to the next instruction to jump to"
-                out.write("    ;; --  end --\n")
+                out.write("    ;; --  end --\n ")
                 if ip + 1 != op[1]:
                  out.write("    jmp addr_%d\n" % op[1])
             elif op[0] == OP_DUP:
@@ -261,8 +287,31 @@ def compile(program, out_file_path):
                 out.write(" test rax, rax\n")
                 assert len(op) >=2, "do instruction does not have a reference to the end of its block"
                 out.write("    jz addr_%d\n" % op[1])
+            elif op[0] == OP_MEM:
+                out.write("    ;; -- mem --\n")
+                out.write("    push mem\n")
+            elif op[0] == OP_LOAD:
+                out.write(";; -- load --\n")
+                out.write("    pop rax\n")
+                out.write("    xor rbx, rbx\n")
+                out.write("     mov bl, [rax\n]")
+                out.write("     push rbx")
+                assert False, "not implemented"
+            elif op[0] == OP_STORE:
+                out.write("    ;; -- store --\n")
+                out.write("    pop rbx\n")
+                out.write("    pop rax\n")
+                out.write("    mov [rax], bl\n")
+                assert False, "not implemented"
+
             else:
                 assert False, "unreachable"
+
+        out.write("addr_%d:\n"%len(program))
+        out.write("    mov rax, 60\n")
+        out.write("     mov rdi, 0\n")
+        out.write("segment .bss\n")
+        out.write("mem: resb %d" % MEM_CAPACITY)
 
         # label for the end of the program (targets may jump to addr_len)
         out.write("addr_%d:\n" % len(program))
@@ -279,7 +328,7 @@ def usage():
     print("    com <file>    Compile the program")
 
 def parse_token_as_op(token):
-    assert COUNT_OPS == 12, "Exhuastive op handling in parse"
+    assert COUNT_OPS == 15, "Exhuastive op handling in parse"
     (file_path, row, col, word) = token
     if word == '+':
         return plus()
@@ -303,6 +352,12 @@ def parse_token_as_op(token):
         return _while()
     elif word == 'do':
         return _do()
+    elif word == 'mem':
+        return mem()
+    elif word == '.':
+        return store()
+    elif word == ',':
+        return load()
     else:
         try:
             return push(int(word))
@@ -314,7 +369,7 @@ def crossreference_block(program):
     stack = []
     for ip in range(len(program)):
         op = program[ip]
-        assert COUNT_OPS == 12, "Exhaustive handling of ops in cross-ref"
+        assert COUNT_OPS == 15, "Exhaustive handling of ops in cross-ref"
         if op[0] == OP_IF:
             stack.append(ip)
         elif op[0] == OP_ELSE:
@@ -364,7 +419,7 @@ def lex_line(line):
 def lex_file(file_path):
     with open(file_path, "r") as f:
        for (row,line) in enumerate(f.readlines()):
-            for (col,token) in lex_line(line):
+            for (col,token) in lex_line(line.split('//')[0]):
                 yield(file_path,row,col,token)
              
             

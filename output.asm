@@ -100,8 +100,12 @@ addr_9:
     push rbx
 addr_10:
     ;; --  end --
-    jmp addr_1
+     jmp addr_1
 addr_11:
+    mov rax, 60
+     mov rdi, 0
+segment .bss
+mem: resb 640000addr_11:
     mov rax, 60
     mov rdi, 0
     syscall
