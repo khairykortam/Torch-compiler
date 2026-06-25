@@ -4,3 +4,12 @@
  dup <<
  1 -
  end 
+
+ mem 0 + 97 <<
+ mem 1 + 98 <<
+ mem 2 + 99 <<
+ 3 mem 1 1 syscall3
+
+ mem 0+  dup + 97 , 1 + <<
+ mem 1+  dup , 1 + <<
+ mem 2+  dup , 1 +<<
