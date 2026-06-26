@@ -17,6 +17,10 @@ OP_PUSH = iota()
 OP_PLUS = iota()
 OP_MINUS = iota()
 OP_EQUAL = iota()
+OP_SHR = iota()
+OP_SHL = iota()
+OP_BAND = iota()
+OP_BOR = iota()
 OP_DUMP = iota()
 OP_IF = iota()
 OP_ELSE = iota()
@@ -85,12 +89,21 @@ def syscall3():
 def syscall1():
     return (OP_SYSCALL1,)
 
+def shl():
+    return (OP_SHL,)
+def shr():
+    return (OP_SHR,)
+def bor():
+    return (OP_BOR,)
+def band():
+    return (OP_BAND,)
+
 def simulate(program):
     stack = []
     mem = bytearray(MEM_CAPACITY)
     ip = 0
     while ip < len(program):
-        assert COUNT_OPS == 17, "Exhaustive handling of operations"
+        assert COUNT_OPS == 19, "Exhaustive handling of operations"
         op = program[ip]
         if op[0] == OP_PUSH:
             stack.append(op[1])
@@ -110,6 +123,23 @@ def simulate(program):
             b = stack.pop()
             stack.append(int(a==b))
             ip+=1
+        elif op[0] == OP_SHR:
+            a = stack.pop()
+            b = stack.pop()
+            stack.append(int(a<<b))
+        elif op[0] == OP_SHL:
+            a = stack.pop()
+            b = stack.pop()
+            stack.append(int(a>>b))
+        elif op[0] == OP_BAND:
+            a = stack.pop()
+            b = stack.pop()
+            stack.append(int(b&a))
+        elif op[0] == OP_BOR:
+            a = stack.pop()
+            b = stack.pop()
+            stack.append(int(b|a))
+
         elif op[0] == OP_IF:
             a = stack.pop()
             if a == 0:
@@ -249,7 +279,7 @@ def compile(program, out_file_path):
 
         for ip in range(len(program)):
             op = program[ip]
-            assert COUNT_OPS == 17, "Exhaustive handling of ops in compilation"
+            assert COUNT_OPS == 19, "Exhaustive handling of ops in compilation"
             out.write("addr_%d:\n" % ip)
             if op[0] == OP_PUSH:
                 out.write("   ;; -- push %d --\n" % op[1])
@@ -279,6 +309,30 @@ def compile(program, out_file_path):
                 out.write("    cmp rax, rbx\n")
                 out.write("    cmove rcx, rdx\n")
                 out.write("    push rcx\n")
+            elif op[0] == OP_SHL:
+                out.write("    ;; -- shl --\n")
+                out.write("    pop rcx\n")
+                out.write("    pop rbx\n")
+                out.write("    shl rbx, cl\n")
+                out.write("    push rbx\n")
+            elif op[0] == OP_SHR:
+                out.write("    ;; -- shr --\n")
+                out.write("    pop rcx\n")
+                out.write("    pop rbx\n")
+                out.write("    shr rbx, cl\n")
+                out.write("    push rbx\n")
+            elif op[0] == OP_BAND:
+                out.write("    ;; -- & --\n")
+                out.write("    pop rax\n")
+                out.write("    pop rbx\n")
+                out.write("    and rbx, rax\n")
+                out.write("    push rbx\n")
+            elif op[0] == OP_BOR: 
+                out.write("    ;; -- | --\n")    
+                out.write("    pop rax\n")
+                out.write("    pop rbx\n")
+                out.write("    or rbx, rax\n")
+                out.write("    push rbx\n")           
             elif op[0] == OP_IF:
                 out.write("    ;;  -- if --\n")
                 out.write("    pop rax\n")
@@ -370,7 +424,7 @@ def usage():
     print("    com <file>    Compile the program")
 
 def parse_token_as_op(token):
-    assert COUNT_OPS == 17, "Exhuastive op handling in parse"
+    assert COUNT_OPS == 19, "Exhuastive op handling in parse"
     (file_path, row, col, word) = token
     if word == '+':
         return plus()
@@ -404,6 +458,14 @@ def parse_token_as_op(token):
         return syscall3()
     elif word == 'syscall1':
         return syscall1()
+    elif word == 'shl':
+        return shl()
+    elif word == 'shr':
+        return shr()
+    elif word == '&':
+        return band()
+    elif word == '|':
+        return bor()
     else:
         try:
             return push(int(word))
@@ -415,7 +477,7 @@ def crossreference_block(program):
     stack = []
     for ip in range(len(program)):
         op = program[ip]
-        assert COUNT_OPS == 17, "Exhaustive handling of ops in cross-ref"
+        assert COUNT_OPS == 19, "Exhaustive handling of ops in cross-ref"
         if op[0] == OP_IF:
             stack.append(ip)
         elif op[0] == OP_ELSE:
