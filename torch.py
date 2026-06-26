@@ -35,6 +35,9 @@ OP_STORE = iota()
 OP_SYSCALL1 = iota()
 OP_SYSCALL3 = iota()
 COUNT_OPS = iota()
+OP_OVER = iota()
+OP_SWAP = iota()
+OP_DROP = iota()
 
 MEM_CAPACITY = 640000
 
@@ -98,12 +101,15 @@ def bor():
 def band():
     return (OP_BAND,)
 
+def over():
+    return (OP_OVER,)
+
 def simulate(program):
     stack = []
     mem = bytearray(MEM_CAPACITY)
     ip = 0
     while ip < len(program):
-        assert COUNT_OPS == 19, "Exhaustive handling of operations"
+        assert COUNT_OPS == 22, "Exhaustive handling of operations"
         op = program[ip]
         if op[0] == OP_PUSH:
             stack.append(op[1])
@@ -189,6 +195,24 @@ def simulate(program):
             addr = stack.pop()
             mem[addr] = value & 0xFF
             ip+=1
+        elif op[0] == OP_SWAP:
+            a = stack.pop()
+            b = stack.pop()
+            stack.append(a)
+            stack.append(b)
+            ip+=1
+        elif op[0] == OP_DROP:
+            stack.pop()
+            ip+=1
+        elif op[0] == OP_OVER:
+         a = stack.pop()
+         b = stack.pop()
+         stack.append(b)
+         stack.append(a)
+         stack.append(b)
+         ip+=1 
+
+
         elif op[0] == OP_SYSCALL1:
             assert False, "yet to be implemented"
         elif op[0] == OP_SYSCALL3:
@@ -279,7 +303,7 @@ def compile(program, out_file_path):
 
         for ip in range(len(program)):
             op = program[ip]
-            assert COUNT_OPS == 19, "Exhaustive handling of ops in compilation"
+            assert COUNT_OPS == 22, "Exhaustive handling of ops in compilation"
             out.write("addr_%d:\n" % ip)
             if op[0] == OP_PUSH:
                 out.write("   ;; -- push %d --\n" % op[1])
@@ -399,6 +423,24 @@ def compile(program, out_file_path):
              out.write("    pop rax\n")
              out.write("    pop rdi\n")
              out.write("    syscall\n")
+            elif op[0] == OP_SWAP:
+                out.write("    ;; -- swap --\n")
+                out.write("    pop rax\n")
+                out.write("    pop rbx\n")
+                out.write("    pop rax\n")
+                out.write("    pop rbx\n")
+
+            elif op[0] == OP_DROP:
+                out.write("    ;; -- drop --\n")
+                out.write("    pop rax\n")
+            elif op[0] == OP_OVER:
+                out.write("    ;; -- over --\n")
+                out.write("    pop rax\n")
+                out.write("    pop rbx\n")
+                out.write("    push rbx\n")
+                out.write("    push rax\n")
+                out.write("    push rax\n")
+
 
             else:
                 assert False, "unreachable"
@@ -424,7 +466,7 @@ def usage():
     print("    com <file>    Compile the program")
 
 def parse_token_as_op(token):
-    assert COUNT_OPS == 19, "Exhuastive op handling in parse"
+    assert COUNT_OPS == 22, "Exhuastive op handling in parse"
     (file_path, row, col, word) = token
     if word == '+':
         return plus()
@@ -466,6 +508,8 @@ def parse_token_as_op(token):
         return band()
     elif word == '|':
         return bor()
+    elif word == 'over':
+        return over()
     else:
         try:
             return push(int(word))
@@ -477,7 +521,7 @@ def crossreference_block(program):
     stack = []
     for ip in range(len(program)):
         op = program[ip]
-        assert COUNT_OPS == 19, "Exhaustive handling of ops in cross-ref"
+        assert COUNT_OPS == 22, "Exhaustive handling of ops in cross-ref"
         if op[0] == OP_IF:
             stack.append(ip)
         elif op[0] == OP_ELSE:
