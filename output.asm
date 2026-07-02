@@ -47,65 +47,26 @@ dump:
     mov rdi, 1
     mov rax, 1
     syscall
-    nop
     leave
     ret
 
-global _start
 _start:
 addr_0:
-   ;; -- push 10 --
     push 10
 addr_1:
-    ;; -- while --
+    push 20
 addr_2:
-    ;; -- dup --
-    pop rax
-    push rax
-    push rax
-addr_3:
-   ;; -- push 0 --
-    push 0
-addr_4:
-    ;; -- gt -- 
-    mov rcx, 0
-    mov rdx, 1
     pop rax
     pop rbx
-    cmp rbx, rax
-    cmovg rcx, rdx
-    push rcx
-addr_5:
-    ;; -- do  --
-    pop rax
- test rax, rax
-    jz addr_11
-addr_6:
-    ;; -- dup --
-    pop rax
-    push rax
-    push rax
-addr_7:
-    ;; -- dump --
+    add rbx, rax
+    push rbx
+addr_3:
     pop rdi
     call dump
-addr_8:
-   ;; -- push 1 --
-    push 1
-addr_9:
-   ;; -- minus --
-    pop rax
-    pop rbx
-    sub rbx, rax
-    push rbx
-addr_10:
-    ;; --  end --
-     jmp addr_1
-addr_11:
-    mov rax, 60
-     mov rdi, 0
-segment .bss
-mem: resb 640000addr_11:
+addr_4:
     mov rax, 60
     mov rdi, 0
     syscall
+segment .data
+segment .bss
+mem: resb 640000
