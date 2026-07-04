@@ -1,8 +1,8 @@
 # Torch-compiler
 
-It's a programming language, made with python. I really never programmed a programming language, but I always wanted to. I loved C that i wanted to simulate it, and it's finally happening. 
+It's a programming language made with Python. I really never programmed a programming language, but I always wanted to. I loved web assembly that I wanted to simulate it, and it's finally happening. 
 
-The language is stack-based, just like C.
+The language is stack-based, just like Forth and WebAssembly.
 
 ##Quick starter
 
