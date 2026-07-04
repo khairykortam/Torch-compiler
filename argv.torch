@@ -1,0 +1,19 @@
+
+include "std.torch"
+macro len
+0 swap while dup , 0 != do
+ 1 + 
+ swap
+ 1 + 
+ swap
+end 
+end
+macro write 1 1 syscall3 end
+
+
+drop 
+while dup 0 > do
+dup len swap
+write drop 
+ write drop 
+end

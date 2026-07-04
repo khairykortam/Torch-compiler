@@ -52,18 +52,66 @@ dump:
 
 _start:
 addr_0:
-    push 10
+    ;; -- drop --
+    pop rax
 addr_1:
-    push 20
 addr_2:
     pop rax
-    pop rbx
-    add rbx, rax
-    push rbx
+    push rax
+    push rax
 addr_3:
-    pop rdi
-    call dump
+    push 0
 addr_4:
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rbx, rax
+    cmovg rcx, rdx
+    push rcx
+addr_5:
+    pop rax
+    test rax, rax
+    jz addr_17
+addr_6:
+    pop rax
+    push rax
+    push rax
+addr_7:
+    ;; -- swap --
+    pop rax
+    pop rbx
+    push rbx
+    push rax
+addr_8:
+    push 1
+addr_9:
+    push 1
+addr_10:
+    pop rax
+    pop rdi
+    pop rsi
+    pop rdx
+    syscall
+addr_11:
+    ;; -- drop --
+    pop rax
+addr_12:
+    push 1
+addr_13:
+    push 1
+addr_14:
+    pop rax
+    pop rdi
+    pop rsi
+    pop rdx
+    syscall
+addr_15:
+    ;; -- drop --
+    pop rax
+addr_16:
+    jmp addr_1
+addr_17:
     mov rax, 60
     mov rdi, 0
     syscall

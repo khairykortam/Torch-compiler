@@ -1,4 +1,2 @@
-
-10 20 + dump
-
-
+// include "std.torch"
+ 10 10 != dump

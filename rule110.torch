@@ -1,0 +1,7 @@
+macro N 10 end
+macro print dump end
+2 while over 1 > do
+over over % 0 = if
+swap over 
+1 + 
+end

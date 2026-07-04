@@ -3,7 +3,6 @@ import subprocess
 from os import path
 
 iota_counter = 0
-
 def iota(reset=False):
     global iota_counter
     if reset:
@@ -17,8 +16,10 @@ OP_PUSH_STR = iota()
 OP_PLUS = iota()
 OP_MINUS = iota()
 OP_MULT = iota()
+OP_DIV = iota()
 OP_MOD = iota()
 OP_EQUAL = iota()
+OP_NOT_EQUAL = iota()
 OP_SHR = iota()
 OP_SHL = iota()
 OP_BAND = iota()
@@ -54,17 +55,19 @@ MEM_CAPACITY = 640000
 STR_CAPACITY = 640000
 
 
-assert COUNT_OPS == 27, "update BUILTIN_WORDS"
+assert COUNT_OPS == 29, "update BUILTIN_WORDS"
 BUILTIN_WORDS = {
     "+": OP_PLUS,
     "-": OP_MINUS,
     "*": OP_MULT,
+    "/": OP_DIV,
     "%": OP_MOD,
     "=": OP_EQUAL,
+    "!=": OP_NOT_EQUAL,
     ">": OP_GT,
     "<": OP_LT,
-    "<<": OP_SHL,
-    ">>": OP_SHR,
+    "shl": OP_SHL,
+    "shr": OP_SHR,
     "&": OP_BAND,
     "|": OP_BOR,
     "dump": OP_DUMP,
@@ -90,13 +93,24 @@ BUILTIN_WORDS = {
 def loc_str(loc):
     return "%s:%d:%d" % loc
 
-def simulate(program):
+def simulate(program, argv):
     stack = []
     mem = bytearray(STR_CAPACITY + MEM_CAPACITY)
-    str_size = 0
+    str_size = 1
+
+    stack.append(0)
+    for arg in reversed(argv):
+        value = arg.encode('utf-8')
+        n = len(value)
+        mem[str_size:str_size+n] = value
+        mem[str_size+n] = 0
+        stack.append(str_size)
+        str_size += n + 1
+        assert str_size <= STR_CAPACITY, "String buffer overflow"
+    stack.append(len(argv))
     ip = 0
     while ip < len(program):
-        assert COUNT_OPS == 27, "Exhaustive handling of operations"
+        assert COUNT_OPS == 29, "Exhaustive handling of operations"
         op = program[ip]
         if op['type'] == OP_PUSH_INT:
             stack.append(op['value'])
@@ -128,6 +142,11 @@ def simulate(program):
             b = stack.pop()
             stack.append(a*b)
             ip+=1
+        elif op['type'] == OP_DIV:
+            a = stack.pop()
+            b = stack.pop()
+            stack.append(b//a)
+            ip+=1
         elif op['type'] == OP_MOD:
             a = stack.pop()
             b = stack.pop()
@@ -137,6 +156,11 @@ def simulate(program):
             a = stack.pop()
             b = stack.pop()
             stack.append(int(a==b))
+            ip+=1
+        elif op['type'] == OP_NOT_EQUAL:
+            a = stack.pop()
+            b = stack.pop()
+            stack.append(int(a!=b))
             ip+=1
         elif op['type'] == OP_SHR:
             a = stack.pop()
@@ -321,7 +345,7 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
         out.write("_start:\n")
 
         for ip, op in enumerate(program):
-            assert COUNT_OPS == 27, "Exhaustive handling of ops in compilation"
+            assert COUNT_OPS == 29, "Exhaustive handling of ops in compilation"
             out.write("addr_%d:\n" % ip)
             if op['type'] == OP_PUSH_INT:
                 out.write("    push %d\n" % op['value'])
@@ -346,6 +370,12 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
                 out.write("    pop rbx\n")
                 out.write("    imul rbx, rax\n")
                 out.write("    push rbx\n")
+            elif op['type'] == OP_DIV:
+                out.write("    xor rdx, rdx\n")
+                out.write("    pop rbx\n")
+                out.write("    pop rax\n")
+                out.write("    div rbx\n")
+                out.write("    push rax\n")
             elif op['type'] == OP_MOD:
                 out.write("    xor rdx, rdx\n")
                 out.write("    pop rbx\n")
@@ -363,6 +393,16 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
                 out.write("    cmp rbx, rax\n")
                 out.write("    cmove rcx, rdx\n")
                 out.write("    push rcx\n")
+            elif op['type'] == OP_NOT_EQUAL:
+                out.write("    ;; -- not equal --\n")
+                out.write("    mov rcx, 0\n")
+                out.write("    mov rdx, 1\n")
+                out.write("    pop rax\n")
+                out.write("    pop rbx\n")
+                out.write("    cmp rbx, rax\n")
+                out.write("    cmovne rcx, rdx\n")
+                out.write("    push rcx\n")
+
             elif op['type'] == OP_SHL:
                 out.write("    pop rcx\n")
                 out.write("    pop rbx\n")
@@ -420,7 +460,6 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
             elif op['type'] == OP_DO:
                 out.write("    pop rax\n")
                 out.write("    test rax, rax\n")
-                assert 'jmp' in op, "do instruction does not have a reference to the end of its block"
                 out.write("    jz addr_%d\n" % op['jmp'])
             elif op['type'] == OP_MEM:
                 out.write("    push mem\n")
@@ -476,13 +515,19 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
         out.write("mem: resb %d\n" % MEM_CAPACITY)
 
 
+def compile_to_wasm(program, out_file_path):
+    strs = []
+    with open(out_file_path, "w") as out:
+        pass
+
+
 
 def usage():
     print("USAGE: TORCH <SUBCOMMAND> <FILE>")
     print("SUBCOMMANDS:")
     print("    sim <file>    Simulate the program")
     print("    com <file>    Compile the program")
-
+    # print("    wasm <file>   Compile the program to WebAssembly")
 
 def parse_token_as_op(token):
     assert COUNT_TOKENS == 3, "Exhuastive token handing in parse_token_as_op"
@@ -509,20 +554,20 @@ def parse_token_as_op(token):
 def crossreference_block(program):
     stack = []
     for ip, op in enumerate(program):
-        assert COUNT_OPS == 27, "Exhaustive handling of ops in cross-ref"
+        assert COUNT_OPS == 29, "Exhaustive handling of ops in cross-ref"
         if op['type'] == OP_IF:
             stack.append(("if", ip))
         elif op['type'] == OP_ELSE:
             assert stack, "else without matching if"
             if_ip = stack.pop()
             assert program[if_ip[1]]['type'] == OP_IF, "else can only be used with if blocks"
-            program[if_ip[1]]['jmp'] = ip
+            program[if_ip[1]]['jmp'] = ip + 1
             stack.append(("else", ip))
         elif op['type'] == OP_END:
             assert stack, "end without matching block"
             block_ip = stack.pop()
             if program[block_ip[1]]['type'] == OP_IF:
-                program[block_ip[1]]['jmp'] = ip
+                program[block_ip[1]]['jmp'] = ip + 1
                 program[ip]['jmp'] = ip + 1
             elif program[block_ip[1]]['type'] == OP_ELSE:
                 program[block_ip[1]]['jmp'] = ip
@@ -531,7 +576,7 @@ def crossreference_block(program):
                 program[block_ip[1]]['jmp'] = ip
                 program[ip]['jmp'] = block_ip[1]
             elif program[block_ip[1]]['type'] == OP_DO:
-                program[block_ip[1]]['jmp'] = ip
+                program[block_ip[1]]['jmp'] = ip + 1
                 program[ip]['jmp'] = block_ip[2]
         elif op['type'] == OP_WHILE:
             stack.append(("while", ip))
@@ -657,7 +702,7 @@ if __name__ == '__main__':
     program = load_program_from_file(file_path)
 
     if subcommand == "sim":
-        simulate(program)
+        simulate(program, sys.argv[3:])
     elif subcommand == "com":
         if len(sys.argv) < 1:
             usage(prog_name)
@@ -668,6 +713,13 @@ if __name__ == '__main__':
         call_cmd(["nasm", "-felf64", "output.asm"])
         # link only the generated object (dump implemented in assembly)
         call_cmd(["ld", "-o", "output", "output.o"])
+    elif subcommand == "wasm":
+        if len(sys.argv) < 1:
+            usage(prog_name)
+            print("ERR: no input file provided for compilation")
+            exit(1)
+            program = load_program_from_file(program_path)
+            compile_to_wasm(program, "output.wasm")
     else:
         usage()
         print("ERR: unknown subcommand %s" % (subcommand))
