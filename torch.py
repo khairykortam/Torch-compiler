@@ -45,6 +45,9 @@ OP_OVER = iota()
 OP_SWAP = iota()
 OP_DROP = iota()
 OP_INCLUDE = INCLUDE
+ARGC = iota()
+ARGV = iota()
+
 
 TOKEN_WORD = iota(True)
 TOKEN_INT = iota()
@@ -53,6 +56,7 @@ COUNT_TOKENS=iota()
 
 MEM_CAPACITY = 640000
 STR_CAPACITY = 640000
+ARG_CAPACITY = 640000
 
 
 assert COUNT_OPS == 29, "update BUILTIN_WORDS"
@@ -80,6 +84,8 @@ BUILTIN_WORDS = {
     "mem": OP_MEM,
     ".": OP_STORE,
     ",": OP_LOAD,
+    'argc': ARGC,
+    'argv': ARGV,
     "syscall1": OP_SYSCALL1,
     "syscall3": OP_SYSCALL3,
     "over": OP_OVER,
@@ -95,18 +101,29 @@ def loc_str(loc):
 
 def simulate(program, argv):
     stack = []
-    mem = bytearray(STR_CAPACITY + MEM_CAPACITY)
-    str_size = 1
+    mem = bytearray(1+STR_CAPACITY + MEM_CAPACITY+ ARG_CAPACITY)
+    str_buf_ptr = 1
+    args_buf_ptr = 1 + STR_CAPACITY
+    argc = 0
+    mem_buf_ptr = 1 + STR_CAPACITY + ARG_CAPACITY
+    str_size = 0
+    str_ptrs: dict[int, int] = {}
 
-    stack.append(0)
+
     for arg in reversed(argv):
         value = arg.encode('utf-8')
         n = len(value)
-        mem[str_size:str_size+n] = value
-        mem[str_size+n] = 0
-        stack.append(str_size)
+        str_buf_end = str_buf_ptr + str_size
+        mem[str_buf_end:str_buf_end+n] = value
+        mem[str_buf_end + n] = 0
         str_size += n + 1
         assert str_size <= STR_CAPACITY, "String buffer overflow"
+        
+        argv_ptr = args_buf_ptr+argc*8
+        mem[argv_ptr:argv_ptr+8] = str_buf_end.to_bytes(8, byteorder='little')
+        argc +=1
+        assert argc*8 <= ARG_CAPACITY, "Argv buffer overflow"
+        
     stack.append(len(argv))
     ip = 0
     while ip < len(program):
@@ -120,10 +137,9 @@ def simulate(program, argv):
             n = len(bs)
             stack.append(n)
             if 'addr' not in op:
-                op['addr'] = str_size
-                mem[str_size:str_size+n] = bs
+                op['addr'] = str_buf_ptr + str_size
+                mem[str_buf_ptr + str_size:str_buf_ptr + str_size+n] = bs
                 str_size += n
-                stack.append(op['addr'])
             assert str_size <= STR_CAPACITY, "string buffer overflow"
             stack.append(op['addr'])
             ip+=1
@@ -259,7 +275,10 @@ def simulate(program, argv):
          stack.append(b)
          ip+=1 
 
-
+        elif op['type'] == ARGC:
+            assert False, "not implemented"
+        elif op['type'] == ARGV:
+            pass
         elif op['type'] == OP_SYSCALL1:
             assert False, "I'm lazy to implement this, I won't use it either way."
         elif op['type'] == OP_SYSCALL3:
@@ -472,6 +491,10 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
                 out.write("    pop rbx\n")
                 out.write("    pop rax\n")
                 out.write("    mov [rax], bl\n")
+            elif op['type'] == ARGC:
+                pass
+            elif op['type'] == ARGV:
+                 pass
             elif op['type'] == OP_SYSCALL3:
                 out.write("    pop rax\n")
                 out.write("    pop rdi\n")
@@ -516,9 +539,12 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
 
 
 def compile_to_wasm(program, out_file_path):
+    STACK_SIZE = STR_CAPACITY + MEM_CAPACITY
     strs = []
+    str_offsets = {}
+    cur_off = 0
     with open(out_file_path, "w") as out:
-        pass
+        out.write("(module\n")
 
 
 
@@ -719,7 +745,9 @@ if __name__ == '__main__':
             print("ERR: no input file provided for compilation")
             exit(1)
             program = load_program_from_file(program_path)
-            compile_to_wasm(program, "output.wasm")
+            compile_to_wasm(program, "output.wat")
+            call_cmd(["wat2wasm", "output.wat", "-o", "output.wasm"])
+
     else:
         usage()
         print("ERR: unknown subcommand %s" % (subcommand))
