@@ -110,7 +110,7 @@ def simulate(program, argv):
     str_ptrs: dict[int, int] = {}
 
 
-    for arg in reversed(argv):
+    for arg in argv:
         value = arg.encode('utf-8')
         n = len(value)
         str_buf_end = str_buf_ptr + str_size
@@ -276,9 +276,11 @@ def simulate(program, argv):
          ip+=1 
 
         elif op['type'] == ARGC:
-            assert False, "not implemented"
+            stack.append(argc)
+            ip+=1
         elif op['type'] == ARGV:
-            pass
+            stack.append(args_buf_ptr)
+            ip+=1
         elif op['type'] == OP_SYSCALL1:
             assert False, "I'm lazy to implement this, I won't use it either way."
         elif op['type'] == OP_SYSCALL3:
@@ -304,6 +306,148 @@ def simulate(program, argv):
         else:
             assert False, "unreachable"
 
+
+def type_check_program(program):
+    stack = []
+    for ip in range(len(program)):
+        op = program[ip]
+        if op['type'] == OP_PUSH_INT:
+            stack.append(0, op['loc'])
+        elif op['type'] == OP_PUSH_STR:
+            stack.append('str',op['loc'])
+            stack.append('ptr', op['loc'])
+        elif op['type'] == OP_IF:
+            if len(stack) < 1:
+                print("%s:%d:%d: not enough arguments for the IF instruction" % loc_str(op['loc']))
+                exit(1)
+                if stack.pop()[0] != bool:
+                    print("%s:%d:%d: IF instruction requires a boolean on the stack" % loc_str(op['loc']))
+                    exit(1)
+        elif op['type'] == OP_ELSE:
+            if len(stack) < 1:
+                print("%s:%d:%d: not enough arguments for the ELSE instruction" % loc_str(op['loc']))
+                exit(1)
+                if stack.pop()[0] != bool:
+                    print("%s:%d:%d: ELSE instruction requires a boolean on the stack" % loc_str(op['loc']))
+                    exit(1)
+                
+        elif op['type'] == OP_END:
+            if program[op['jmp']]['type'] == OP_WHILE:
+                if len(stack) < 1:
+                    print("%s:%d:%d: not enough arguments for the END instruction" % loc_str(op['loc']))
+                    exit(1)
+                    if stack.pop()[0] != bool:
+                        print("%s:%d:%d: END instruction requires a boolean on the stack" % loc_str(op['loc']))
+                        exit(1)
+        elif op['type'] == OP_DO:
+            if len(stack) < 1:
+                print("%s:%d:%d: not enough arguments for the DO instruction" % loc_str(op['loc']))
+                exit(1)
+                a_type, a_loc = stack.pop()
+                if a_type != bool:
+                    print("%s:%d:%d: DO instruction requires a boolean on the stack, got %s" % (loc_str(op['loc']), a_type), file=sys.stderr)
+        elif op['type'] == OP_WHILE:
+            pass
+
+        elif op['type'] == OP_PLUS:
+            if len(stack) < 2:
+                print("%s:%d:%d: not enough arguemtns for the PLUS operation" % loc_str(op['loc']))
+                a_type, a_loc = stack.pop()
+                b_type, b_loc = stack.pop()
+                if not isinstance(a_type, int) or not isinstance(b_type, int):
+                    print("%s:%d:%d: PLUS operation requires two integers, got %s and %s" % (loc_str(op['loc']), a_type, b_type))
+                    exit(1)
+                stack.append((0, op['loc']))
+
+        elif op['type'] == OP_MINUS:
+            if len(stack) < 2:
+                print("%s:%d:%d: not enough arguments for the MINUS operation" % loc_str(op['loc']))
+                a_type, a_loc = stack.pop()
+                b_type, b_loc = stack.pop()
+                if not isinstance(a_type, int) or not isinstance(b_type, int):
+                    print("%s:%d:%d: MINUS operation requires two integers, got %s and %s" % (loc_str(op['loc']), a_type, b_type))
+                    exit(1)
+                stack.append((0, op['loc']))
+
+        elif op['type'] == OP_MULT:
+            if len(stack) < 2:
+                print("%s:%d:%d: not enough arguments for the MULT operation" % loc_str(op['loc']))
+                a_type, a_loc = stack.pop()
+                b_type, b_loc = stack.pop()
+                if not isinstance(a_type, int) or not isinstance(b_type, int):
+                    print("%s:%d:%d: MULT operation requires two integers, got %s and %s" % (loc_str(op['loc']), a_type, b_type))
+                    exit(1)
+                stack.append((0, op['loc']))
+        elif op['type'] == OP_DIV:
+            if len(stack) < 2:
+                print("%s:%d:%d: not enough arguments for the DIV operation" % loc_str(op['loc']))
+                a_type, a_loc = stack.pop()
+                b_type, b_loc = stack.pop()
+                if not isinstance(a_type, int) or not isinstance(b_type, int):
+                    print("%s:%d:%d: DIV operation requires two integers, got %s and %s" % (loc_str(op['loc']), a_type, b_type))
+                    exit(1)
+                stack.append((0, op['loc']))
+        elif op['type'] == OP_GT:
+            if len(stack) < 2:
+                print("%s:%d:%d: not enough arguments for the GT operation" % loc_str(op['loc']))
+                exit(1)
+                a = stack.pop()
+                b = stack.pop()
+                if not isinstance(a, bool) or not isinstance(b, bool):
+                    print("%s:%d:%d: GT operation requires two booleans, got %s and %s" % (loc_str(op['loc']), a, b), file=sys.stderr)
+                    exit(1)
+                stack.append((0, op['loc']))
+
+        elif op['type'] == OP_DUMP:
+            if len(stack) < 1:
+                print("%s:%d:%d: not enough arguments for the DUMP instruction" % loc_str(op['loc']))
+                exit(1)
+            stack.pop()
+        
+        elif op['type'] == OP_DROP:
+            if len(stack) < 1:
+                print("%s:%d:%d: not enough arguments for the DROP instruction" % loc_str(op['loc']))
+                exit(1)
+            stack.pop()
+        elif op['type'] == OP_OVER:
+            if len(stack) < 2:
+                print("%s:%d:%d: not enough arguments for the OVER instruction" % loc_str(op['loc']))
+                exit(1)
+            a = stack.pop()
+            b = stack.pop()
+            stack.append(b)
+            stack.append(a)
+            stack.append(b)
+        elif op['type'] == OP_DUP:
+            if len(stack) < 1:
+                print("%s:%d:%d: not enough arguments for the DUP instruction" % loc_str(op['loc']), file=sys.stderr)
+                exit(1)
+            a = stack.pop()
+            stack.append(a)
+            stack.append(a)
+        
+        elif op['type'] == OP_SYSCALL1:
+            if len(stack) < 1:
+                print("%s:%d:%d: not enough arguments for the SYSCALL1 instruction" % loc_str(op['loc']))
+                exit(1)
+            if len(stack) < 2:
+                print("%s:%d:%d: not enough arguments for the SYSCALL3 instruction" % loc_str(op['loc']))
+                exit(1)
+            for i in range(1):
+                stack.pop()
+                stack.push((0, op['loc']))
+        elif op['type'] == OP_SYSCALL3:
+            if len(stack) < 4:
+                print("%s:%d:%d: not enough arguments for the SYSCALL3 instruction" % loc_str(op['loc']))
+                exit(1)
+            for i in range(3):
+                stack.pop()
+                stack.push((0, op['loc']))
+        
+        else: 
+            assert False, "unreachable"
+    if len(stack) != 0:
+        print("%s:%d:%d: ERR: unhandled data on the stack" % stack.pop()[1])
 
 def compile_to_nasm_linux_x86_64(program, out_file_path):
     strs = []
@@ -362,6 +506,7 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
         out.write("    ret\n")
         out.write("\n")
         out.write("_start:\n")
+        out.write("     mov [args_ptr], rsp\n")
 
         for ip, op in enumerate(program):
             assert COUNT_OPS == 29, "Exhaustive handling of ops in compilation"
@@ -492,9 +637,16 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
                 out.write("    pop rax\n")
                 out.write("    mov [rax], bl\n")
             elif op['type'] == ARGC:
-                pass
+                out.write("    ;; -- argc --\n")
+                out.write("    move rax, [args_ptr]\n")
+                out.write("    mov rax, [rax]\n")
+                out.write("    push rax\n")
             elif op['type'] == ARGV:
-                 pass
+                 out.write("    ;; -- argv --\n")
+                 out.write("    mov rax, [args_ptr]\n")
+                 out.write("    add rax, 8\n")
+                 out.write("    push rax\n")
+                 
             elif op['type'] == OP_SYSCALL3:
                 out.write("    pop rax\n")
                 out.write("    pop rdi\n")
@@ -532,6 +684,7 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
         out.write("    mov rdi, 0\n")
         out.write("    syscall\n")
         out.write("segment .data\n")
+        out.write("args_ptr: resq 1\n")
         for index, s in enumerate(strs):
             out.write("str_%d: db %s\n" % (index, ','.join(map(hex, list(bytes(s, 'utf-8'))))))
         out.write("segment .bss\n")
@@ -728,6 +881,7 @@ if __name__ == '__main__':
     program = load_program_from_file(file_path)
 
     if subcommand == "sim":
+        type_check_program(program)
         simulate(program, sys.argv[3:])
     elif subcommand == "com":
         if len(sys.argv) < 1:
@@ -735,6 +889,7 @@ if __name__ == '__main__':
             print("ERR: no input file provided for compilation")
             exit(1)
             program = load_program_from_file(program_path) 
+        type_check_program(program)
         compile_to_nasm_linux_x86_64(program, "output.asm")
         call_cmd(["nasm", "-felf64", "output.asm"])
         # link only the generated object (dump implemented in assembly)
