@@ -1,0 +1,74 @@
+include "std.porth"
+
+macro OP_PUSH_INT 0 end
+macro OP_PLUS 1 end
+macro OP_PRINT 2 end
+
+macro ops-cnt mem end
+macro ops ops-cnt 8 + end
+
+macro sizeof(Op) 16 end
+
+macro push-op 
+ops-cnt @64 sizeof(Op) * ops +
+dup 8 + rot swap !64
+!64
+ops-cnt inc64
+end
+
+macro dump-ops
+ 0 while ops-cnt @64 < do
+ dup sizeof(Op) * ops + 
+ "Type" puts dup @64 print 
+ "Operand: " puts dup 8 + @64 print 
+ "---------\n" puts
+
+ end 
+ drop
+end
+
+macro simulate-ops
+"not implemented"
+end
+
+macro compile-ops
+ 0 while dup ops-cnt @64 < do
+ dup sizeof(Op) * ops +
+ dup @64 OP_PUSH_INT = if
+  "    ;; -- push int %d --\n" puts
+  "    mov rax, %d\n" puts
+  "    push rax\n" puts
+
+ else 
+ dup @64 OP_PLUS = if
+  "    ;; -- plus --\n" puts
+  "    pop rax\n" puts
+  "    pop rbx\n" puts
+  "    add rax, rbx\n" puts
+  "    push rax\n" puts 
+ else 
+ dup @64 OP_PRINT = if
+ "    ;; -- print --\n" puts
+ "    pop rdi\n" puts
+ "    call print\n" puts
+ else 
+ puts ": unreachable\n"
+ end
+ end 
+ end
+ drop
+ 1+ 
+ end 
+ drop
+  "mov rax, 60\n" puts
+  "mov rdi, 0\n" puts
+  "syscall\n" puts
+  "segment .bss\n" puts
+  "args_ptr: resq 1\n" puts
+  "mem: resb %d\n" puts
+end
+
+OP_PUSH_INT 34 push-op
+OP_PUSH_INT 35 push-op
+OP_PLUS 0 push-op
+OP_PRINT 0 push-op
