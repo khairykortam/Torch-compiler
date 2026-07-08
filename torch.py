@@ -13,6 +13,7 @@ def iota(reset=False):
 
 OP_PUSH_INT = iota(True)
 OP_PUSH_STR = iota()
+OP_PUSH_CSTR = iota()
 OP_PLUS = iota()
 OP_MINUS = iota()
 OP_MULT = iota()
@@ -20,46 +21,68 @@ OP_DIV = iota()
 OP_MOD = iota()
 OP_EQUAL = iota()
 OP_NOT_EQUAL = iota()
+OP_GT= iota()
+OP_LT = iota()
+OP_GE = iota()
+OP_LE = iota()
 OP_SHR = iota()
 OP_SHL = iota()
 OP_BAND = iota()
 OP_BOR = iota()
-OP_DUMP = iota()
-OP_IF = iota()
-OP_ELSE = iota()
-MACRO = iota()
-INCLUDE = iota()
-OP_END = iota()
+OP_NOT = iota()
+OP_PRINT = iota()
 OP_DUP = iota()
-OP_GT= iota()
-OP_LT = iota()
-OP_WHILE = iota()
-OP_DO = iota()
 OP_MEM = iota()
-OP_LOAD = iota()
-OP_STORE = iota()
-OP_SYSCALL1 = iota()
-OP_SYSCALL3 = iota()
-COUNT_OPS = iota()
-OP_OVER = iota()
 OP_SWAP = iota()
 OP_DROP = iota()
-OP_INCLUDE = INCLUDE
+OP_OVER = iota()
+OP_ROT = iota()
+
+OP_LOAD = iota()
+OP_STORE = iota()
+OP_LOAD64 = iota()
+OP_STORE64 = iota()
+FORTH_LOAD = iota()
+FORTH_STORE = iota()
+FORTH_LOAD64 = iota()
+FORTH_STORE64 = iota()
+CAST_PTR = iota()
+
+OP_SYSCALL0 = iota()
+OP_SYSCALL1 = iota()
+OP_SYSCALL2 = iota()
+OP_SYSCALL3 = iota()
+
+
+
 ARGC = iota()
 ARGV = iota()
+HERE = iota()
+
+OP_IF = iota()
+OP_ELSE = iota()
+OP_WHILE = iota()
+OP_DO = iota()
+OP_END = iota()
+MACRO = iota()
+INCLUDE = iota()
+COUNT_OPS = iota()
+
 
 
 TOKEN_WORD = iota(True)
 TOKEN_INT = iota()
 TOKEN_STR=iota()
-COUNT_TOKENS=iota()
+TOKEN_CSTR = iota()
+TOKEN_CHAR = iota()
+COUNT_TOKENS = iota()
 
 MEM_CAPACITY = 640000
 STR_CAPACITY = 640000
 ARG_CAPACITY = 640000
 
 
-assert COUNT_OPS == 29, "update BUILTIN_WORDS"
+assert COUNT_OPS == 38, "update BUILTIN_WORDS"
 BUILTIN_WORDS = {
     "+": OP_PLUS,
     "-": OP_MINUS,
@@ -70,11 +93,14 @@ BUILTIN_WORDS = {
     "!=": OP_NOT_EQUAL,
     ">": OP_GT,
     "<": OP_LT,
+    "<=": OP_LE,
+    ">=": OP_GE,
+    "not": OP_NOT,
     "shl": OP_SHL,
     "shr": OP_SHR,
     "&": OP_BAND,
     "|": OP_BOR,
-    "dump": OP_DUMP,
+    "print": OP_PRINT,
     "if": OP_IF,
     "else": OP_ELSE,
     "end": OP_END,
@@ -91,6 +117,16 @@ BUILTIN_WORDS = {
     "over": OP_OVER,
     "swap": OP_SWAP,
     "drop": OP_DROP,
+    "rot": OP_ROT,
+    ".64" : OP_STORE64,
+    ",64" : OP_LOAD64,
+    "!" : FORTH_STORE,
+    "@" : FORTH_LOAD,
+    "!64": FORTH_STORE64,
+    "@64" : FORTH_LOAD64,
+    "cast(ptr)" : CAST_PTR,
+    "here": HERE,
+
 }
 
 
@@ -127,7 +163,7 @@ def simulate(program, argv):
     stack.append(len(argv))
     ip = 0
     while ip < len(program):
-        assert COUNT_OPS == 29, "Exhaustive handling of operations"
+        assert COUNT_OPS == 38, "Exhaustive handling of operations"
         op = program[ip]
         if op['type'] == OP_PUSH_INT:
             stack.append(op['value'])
@@ -212,7 +248,7 @@ def simulate(program, argv):
         elif op['type'] == OP_END:
          assert 'jmp' in op, "end doesn't have a reference to the next instruction."
          ip = op['jmp']
-        elif op['type'] == OP_DUMP:
+        elif op['type'] == OP_PRINT:
             a = stack.pop()
             print(a)
             ip+=1
@@ -242,7 +278,7 @@ def simulate(program, argv):
                 ip += 1
         elif op['type'] == MACRO:
             assert False, "unreachable, All macros should be eliminated at compilation"
-        elif op['type'] == OP_INCLUDE:
+        elif op['type'] == INCLUDE:
             assert False, "includes should be expanded before simulation"
 
         elif op['type'] == OP_MEM:
@@ -398,7 +434,7 @@ def type_check_program(program):
                     exit(1)
                 stack.append((0, op['loc']))
 
-        elif op['type'] == OP_DUMP:
+        elif op['type'] == OP_PRINT:
             if len(stack) < 1:
                 print("%s:%d:%d: not enough arguments for the DUMP instruction" % loc_str(op['loc']))
                 exit(1)
@@ -454,10 +490,7 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
     with open(out_file_path, "w") as out:
         out.write("BITS 64\n")
         out.write("segment .text\n")
-        out.write("global _start\n")
-        out.write("\n")
-
-        out.write("dump:\n")
+        out.write("print:\n")
         out.write("    push rbp\n")
         out.write("    mov rbp, rsp\n")
         out.write("    sub rsp, 64\n")
@@ -505,35 +538,42 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
         out.write("    leave\n")
         out.write("    ret\n")
         out.write("\n")
+
+        out.write("global _start\n")
         out.write("_start:\n")
         out.write("     mov [args_ptr], rsp\n")
 
-        for ip, op in enumerate(program):
-            assert COUNT_OPS == 29, "Exhaustive handling of ops in compilation"
+        for ip in range(len(program)):
+            op = program[ip]
+            # assert COUNT_OPS == 29, "Exhaustive handling of ops in compilation"
             out.write("addr_%d:\n" % ip)
             if op['type'] == OP_PUSH_INT:
-                out.write("    push %d\n" % op['value'])
-            elif op['type'] == OP_PUSH_STR:
-                idx = len(strs)
-                strs.append(op['value'])
-                out.write("    mov rax, %d\n" % len(op['value']))
+                out.write("    ;; -- push int %d --\n" % op['value'])
+                out.write("    mov rax, %d\n" % op['value'])
                 out.write("    push rax\n")
-                out.write("    push str_%d\n" % idx)
+            elif op['type'] == OP_PUSH_STR:
+                value = op['value'].encode('utf-8')
+                idx = len(value)
+                out.write("    ;; - push str --\n")
+                out.write("    mov rax, %d\n" % idx)
+                out.write("    push rax\n")
+                out.write("    push str_%d\n" % len(strs))
+                strs.append(value)
             elif op['type'] == OP_PLUS:
                 out.write("    pop rax\n")
                 out.write("    pop rbx\n")
-                out.write("    add rbx, rax\n")
-                out.write("    push rbx\n")
+                out.write("    add rax, rbx\n")
+                out.write("    push rax\n")
             elif op['type'] == OP_MINUS:
                 out.write("    pop rax\n")
                 out.write("    pop rbx\n")
-                out.write("    sub rbx, rax\n")
-                out.write("    push rbx\n")
+                out.write("    sub rax, rbx\n")
+                out.write("    push rax\n")
             elif op['type'] == OP_MULT:
                 out.write("    pop rax\n")
                 out.write("    pop rbx\n")
-                out.write("    imul rbx, rax\n")
-                out.write("    push rbx\n")
+                out.write("    mul rbx\n")
+                out.write("    push rax\n")
             elif op['type'] == OP_DIV:
                 out.write("    xor rdx, rdx\n")
                 out.write("    pop rbx\n")
@@ -546,10 +586,11 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
                 out.write("    pop rax\n")
                 out.write("    div rbx\n")
                 out.write("    push rdx\n")
-            elif op['type'] == OP_DUMP:
+            elif op['type'] == OP_PRINT:
                 out.write("    pop rdi\n")
-                out.write("    call dump\n")
+                out.write("    call print\n")
             elif op['type'] == OP_EQUAL:
+                out.write("    ;; -- equal --\n")
                 out.write("    mov rcx, 0\n")
                 out.write("    mov rdx, 1\n")
                 out.write("    pop rax\n")
@@ -565,6 +606,41 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
                 out.write("    pop rbx\n")
                 out.write("    cmp rbx, rax\n")
                 out.write("    cmovne rcx, rdx\n")
+                out.write("    push rcx\n")
+            elif op['type'] == OP_GT:
+                out.write("    mov rcx, 0\n")
+                out.write("    mov rdx, 1\n")
+                out.write("    pop rax\n")
+                out.write("    pop rbx\n")
+                out.write("    cmp rbx, rax\n")
+                out.write("    cmovg rcx, rdx\n")
+                out.write("    push rcx\n")
+            elif op['type'] == OP_LT:
+                out.write("    ;; -- lt --\n")
+                out.write("    mov rcx, 0\n")
+                out.write("    mov rdx, 1\n")
+                out.write("    pop rax\n")
+                out.write("    pop rbx\n")
+                out.write("    cmp rbx, rax\n")
+                out.write("    cmovl rcx, rdx\n")
+                out.write("    push rcx\n")
+            elif op['type'] == OP_GE:
+                out.write("    ;; -- gte --\n")
+                out.write("    mov rcx, 0\n")
+                out.write("    mov rdx, 1\n")
+                out.write("    pop rbx\n")
+                out.write("    pop rax\n")
+                out.write("    cmp rbx, rax\n")
+                out.write("    cmovge rcx, rdx\n")
+                out.write("    push rcx\n")
+            elif op['type'] == OP_LE:
+                out.write("    ;; -- lte --\n")
+                out.write("    mov rcx, 0\n")
+                out.write("    mov rdx, 1\n")
+                out.write("    pop rax\n")
+                out.write("    pop rbx\n")
+                out.write("    cmp rbx, rax\n")
+                out.write("    cmovle rcx, rdx\n")
                 out.write("    push rcx\n")
 
             elif op['type'] == OP_SHL:
@@ -587,58 +663,79 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
                 out.write("    pop rbx\n")
                 out.write("    or rbx, rax\n")
                 out.write("    push rbx\n")
+            elif op['type'] == OP_NOT:
+                out.write("     ;; -- not --\n")
+                out.write("     pop rax\n")
+                out.write("    not rax\n")
+                out.write("    push rax\n")
             elif op['type'] == OP_IF:
-                out.write("    pop rax\n")
-                out.write("    test rax, rax\n")
-                assert 'jmp' in op, "if instruction doesn't have a reference to the end of its block"
-                out.write("    jz addr_%d\n" % op['jmp'])
+                out.write("    ;; -- if --\n")
+            elif op['type'] == OP_WHILE:
+                out.write("    ;; -- while --\n")
             elif op['type'] == OP_ELSE:
-                assert 'jmp' in op, "else instruction doesn't have a reference to the end of its block"
+                out.write("    ;; -- else --\n")
                 out.write("    jmp addr_%d\n" % op['jmp'])
             elif op['type'] == OP_END:
+                out.write("    ;; -- end --\n")
                 assert 'jmp' in op, "end instruction does not have a reference to the next instruction to jump to"
                 if ip + 1 != op['jmp']:
                     out.write("    jmp addr_%d\n" % op['jmp'])
-            elif op['type'] == OP_DUP:
-                out.write("    pop rax\n")
-                out.write("    push rax\n")
-                out.write("    push rax\n")
-            elif op['type'] == OP_GT:
-                out.write("    mov rcx, 0\n")
-                out.write("    mov rdx, 1\n")
-                out.write("    pop rax\n")
-                out.write("    pop rbx\n")
-                out.write("    cmp rbx, rax\n")
-                out.write("    cmovg rcx, rdx\n")
-                out.write("    push rcx\n")
-            elif op['type'] == OP_LT:
-                out.write("    mov rcx, 0\n")
-                out.write("    mov rdx, 1\n")
-                out.write("    pop rax\n")
-                out.write("    pop rbx\n")
-                out.write("    cmp rbx, rax\n")
-                out.write("    cmovl rcx, rdx\n")
-                out.write("    push rcx\n")
-            elif op['type'] == OP_WHILE:
-                pass
+            
             elif op['type'] == OP_DO:
+                out.write("    ;; -- do --\n")
                 out.write("    pop rax\n")
                 out.write("    test rax, rax\n")
                 out.write("    jz addr_%d\n" % op['jmp'])
             elif op['type'] == OP_MEM:
+                out.write("    ;; -- mem --\n")
                 out.write("    push mem\n")
             elif op['type'] == OP_LOAD:
+                out.write('    ;; -- load --\n')
                 out.write("    pop rax\n")
                 out.write("    xor rbx, rbx\n")
                 out.write("    mov bl, [rax]\n")
                 out.write("    push rbx\n")
             elif op['type'] == OP_STORE:
+                out.write("    ;; -- store --\n")
                 out.write("    pop rbx\n")
                 out.write("    pop rax\n")
                 out.write("    mov [rax], bl\n")
+            elif op['type'] == OP_LOAD64:
+                out.write('    ;; -- load --\n')
+                out.write("    pop rax\n")
+                out.write("    xor rbx, rbx\n")
+                out.write("    mov rbx, [rax]\n")
+                out.write("    push rbx\n")
+            elif op['type'] == OP_STORE64:
+                out.write("    ;; -- store --\n")
+                out.write("    pop rbx\n")
+                out.write("    pop rax\n")
+                out.write("    mov [rax], rbx\n")
+            elif op['type'] == FORTH_LOAD:
+                out.write('    ;; -- load --\n')
+                out.write("    pop rax\n")
+                out.write("    xor rbx, rbx\n")
+                out.write("    mov bl, [rax]\n")
+                out.write("    push rbx\n")
+            elif op['type'] == FORTH_STORE:
+                out.write("    ;; -- store --\n")
+                out.write("    pop rbx\n")
+                out.write("    pop rax\n")
+                out.write("    mov [rax], bl\n")
+            elif op['type'] == FORTH_LOAD64:
+                out.write('    ;; -- load --\n')
+                out.write("    pop rax\n")
+                out.write("    xor rbx, rbx\n")
+                out.write("    mov rbx, [rax]\n")
+                out.write("    push rbx\n")
+            elif op['type'] == FORTH_STORE64:
+                out.write("    ;; -- store --\n")
+                out.write("    pop rbx\n")
+                out.write("    pop rax\n")
+                out.write("    mov [rax], rbx\n")
             elif op['type'] == ARGC:
                 out.write("    ;; -- argc --\n")
-                out.write("    move rax, [args_ptr]\n")
+                out.write("    mov rax, [args_ptr]\n")
                 out.write("    mov rax, [rax]\n")
                 out.write("    push rax\n")
             elif op['type'] == ARGV:
@@ -646,16 +743,39 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
                  out.write("    mov rax, [args_ptr]\n")
                  out.write("    add rax, 8\n")
                  out.write("    push rax\n")
-                 
+            elif op['type'] == HERE:
+                value = ("%s:%d:%d" % op['loc']).encode('utf-8')
+                n = len(value)
+                out.write("    ;; -- here --\n")
+                out.write("    mov rax, %d\n" % n)
+                out.write("    push rax\n")
+                out.write("    push str_%d\n" % len(strs))
+                strs.append(value)
+            elif op['type'] == CAST_PTR:
+                out.write("    ;; -- cast(ptr) --\n")
+            elif op['type'] == OP_SYSCALL0:
+                out.write("    ;; -- sycall0 --\n")
+                out.write("    pop rax\n")
+                out.write("    syscall\n")
+                out.write("    push rax\n")
+            elif op['type'] == OP_SYSCALL1:
+                out.write("    ;; -- sycall1 --\n")
+                out.write("    pop rax\n")
+                out.write("    pop rdi\n")
+                out.write("    syscall\n")
+                out.write("    push rax\n")
+            elif op['type'] == OP_SYSCALL2:
+                out.write("    ;; -- syscall2 --\n")
+                out.write("    pop rax\n")
+                out.write("    pop rdi\n")
+                out.write("    pop rsi\n")
+                out.write("    syscall\n")
+                out.write("    push rax\n")
             elif op['type'] == OP_SYSCALL3:
                 out.write("    pop rax\n")
                 out.write("    pop rdi\n")
                 out.write("    pop rsi\n")
                 out.write("    pop rdx\n")
-                out.write("    syscall\n")
-            elif op['type'] == OP_SYSCALL1:
-                out.write("    pop rax\n")
-                out.write("    pop rdi\n")
                 out.write("    syscall\n")
             elif op['type'] == OP_SWAP:
                 out.write("    ;; -- swap --\n")
@@ -672,6 +792,22 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
                 out.write("    push rbx\n")
                 out.write("    push rax\n")
                 out.write("    push rbx\n")
+            elif op['type'] == OP_DUP:
+                out.write("    ;; -- dup --\n")
+                out.write("    pop rax\n")
+                out.write("    push rax\n")
+                out.write("    push rax\n")
+            elif op['type'] == OP_ROT:
+                out.write("    ;; -- rot --\n")
+                out.write("    pop rax\n")
+                out.write("    pop rbx\n")
+                out.write("    pop rcx\n")
+                out.write("    push rbx\n")
+                out.write("    push rax\n")
+                out.write("    push rcx\n")
+            
+
+
             elif op['type'] == MACRO:
                 assert False, "unreachable, all macros should be eliminated by the compilation step"
             elif op['type'] == INCLUDE:
@@ -684,10 +820,10 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
         out.write("    mov rdi, 0\n")
         out.write("    syscall\n")
         out.write("segment .data\n")
-        out.write("args_ptr: resq 1\n")
         for index, s in enumerate(strs):
             out.write("str_%d: db %s\n" % (index, ','.join(map(hex, list(bytes(s, 'utf-8'))))))
         out.write("segment .bss\n")
+        out.write("args_ptr: resq 1\n")
         out.write("mem: resb %d\n" % MEM_CAPACITY)
 
 

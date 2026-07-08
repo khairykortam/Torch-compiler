@@ -1,4 +1,48 @@
+// constants
+macro NULL 0 end
+macro true 1 end
+macro false 0 end
+macro nop end 
 
+// standard stream
+macro stdin 0 end
 macro stdout 1 end
+macro stderr 2 end
+
+// syscall
+macro SYS_read 0 end
+macro SYS_write 1 end
+macro SYS_open 2 end
+macro SYS_close 3 end 
+
+// wrappers
+macro write SYS_write syscall3 end
+macro read SYS_read syscall3 end
+
+// shortcuts
+macro 2dup over over end
+macro 2drop drop drop end
+
+macro nth_argv
+ 8 * argv + ,64 cast(ptr)
+ end
+
+ macro inc64
+ dup ,64 1 + .64
+ end
+ macro cstrlen
+ dup
+ while dup , 0 != do 1 + end
+ swap -
+ end
+ macro fputs
+ write drop
+ end
+ macro puts
+ stdout fputs
+ end
+ macro eputs 
+ stderr fputs
+ end
 
 
