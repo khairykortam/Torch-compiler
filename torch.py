@@ -214,6 +214,87 @@ def simulate(program, argv):
             b = stack.pop()
             stack.append(int(a!=b))
             ip+=1
+        elif op['type'] == OP_GE:
+            a = stack.pop()
+            b = stack.pop()
+            stack.append(int(b>=a))
+            ip+=1
+        elif op['type'] == OP_LE:
+            a = stack.pop()
+            b = stack.pop()
+            stack.append(int(b<=a))
+            ip+=1
+        elif op['type'] == OP_NOT:
+            a = stack.pop()
+            stack.append(int(~a))
+            ip+=1
+        elif op['type'] == OP_ROT:
+            a = stack.pop()
+            b = stack.pop()
+            c = stack.pop()
+            stack.append(b)
+            stack.append(a)
+            stack.append(c)
+            ip +=1
+        
+        elif op['type'] == FORTH_LOAD:
+            addr = stack.pop()
+            byte = mem[addr]
+            stack.append(byte)
+            ip+=1
+
+        elif op['type'] == FORTH_STORE:
+            store_addr = stack.pop()
+            store_val = stack.pop()
+            mem[store_addr] = store_val & 0xFF
+            ip+=1
+        elif op['type'] == OP_LOAD64:
+            addr = stack.pop()
+            _byte = bytearray(8)
+            for offset in range(0,8):
+                _byte[offset] = mem[addr+offset]
+            stack.append(int.from_bytes(_byte,byteorder="little"))
+            ip+=1
+            
+        elif op['type'] == OP_STORE64:
+            store_val = stack.pop()
+            store_val64 = store_val.to_bytes(
+                length=8, byteorder="little", signed=(store_val<0)
+            )
+            store_addr64 = stack.pop()
+            for byte in store_val64:
+                mem[store_addr64] = byte
+                store_addr64 +=1
+            ip+=1
+        elif op['type'] == FORTH_LOAD64:
+            addr = stack.pop()
+            _byte = bytearray(8)
+            for offset in range(0,8):
+                _byte[offset] = mem[addr+offset]
+            stack.append(int.from_bytes(_byte,byteorder="little"))
+            ip+=1
+        elif op['type'] == FORTH_STORE64:
+            store_val = stack.pop()
+            store_val64 = store_val.to_bytes(
+                length=8, byteorder="little", signed=(store_val<0)
+            )
+            store_addr64 = stack.pop()
+            for byte in store_val64:
+                mem[store_addr64] = byte
+                store_addr64 +=1
+            ip+=1
+        elif op['type'] == HERE:
+            val = ("%s:%d:%d" % op['loc']).encode('utf-8')
+            n = len(value)
+            stack.append(n)
+            if ip not in str_ptrs:
+                str_ptr = str_buf_ptr + str_size
+                str_ptrs[ip] = str_ptr
+                mem[str_ptr:str_ptr+n] = value
+                str_size +=n
+                assert str_size < STR_CAPACITY, "buffer overflow"
+                stack.append(str_ptrs[ip])
+                ip+=1
         elif op['type'] == OP_SHR:
             a = stack.pop()
             b = stack.pop()
@@ -317,8 +398,23 @@ def simulate(program, argv):
         elif op['type'] == ARGV:
             stack.append(args_buf_ptr)
             ip+=1
+        elif op['type'] == OP_SYSCALL0:
+        #     syscall_number = stack.pop()
+        #     if syscall_number: 39:
+        #     stack.append(os.getpid())
+        #     else: 
+              ip+=1
+
         elif op['type'] == OP_SYSCALL1:
-            assert False, "I'm lazy to implement this, I won't use it either way."
+            syscall_number = stack.pop()
+            arg1 = stack.pop()
+            if syscall_number == 60:
+                exit(arg1)
+            else:
+                assert False, "unknown syscall number %d" % syscall_number
+            ip+=1
+        elif op['type'] == OP_SYSCALL2:
+            pass
         elif op['type'] == OP_SYSCALL3:
             syscall_number = stack.pop()
             arg1 = stack.pop()
@@ -345,6 +441,7 @@ def simulate(program, argv):
 
 def type_check_program(program):
     stack = []
+    block_stack = []
     for ip in range(len(program)):
         op = program[ip]
         if op['type'] == OP_PUSH_INT:
@@ -842,6 +939,7 @@ def usage():
     print("SUBCOMMANDS:")
     print("    sim <file>    Simulate the program")
     print("    com <file>    Compile the program")
+    
     # print("    wasm <file>   Compile the program to WebAssembly")
 
 def parse_token_as_op(token):
@@ -1005,6 +1103,7 @@ def call_cmd(cmd):
     subprocess.call(cmd)
 
 if __name__ == '__main__':
+    argv = sys.argv
     if len(sys.argv) < 3:
         usage()
         print("ERR: no subcommand or file provided")
