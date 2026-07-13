@@ -1,132 +1,438 @@
 include "std.porth"
 
-macro OP_PUSH_INT 0 end
-macro OP_PLUS 1 end
-macro OP_PRINT 2 end
+// const Loc.file-path sizeof(Str) offset end
+const Loc.row sizeof(u64) offset end
+const Loc.col sizeof(u64) offset end
+const sizeof(Loc) reset end
 
-macro PUTD_BUFFER_CAP 32 end
-macro MEM_CAPACITY 640000 end
-macro SIM_STACK_CAP 1024 end 
-
-
-macro Op.type nop end
-macro Op.operand 8 + end 
-macro sizeof(Op) 16 end
-
-// memory for simulation
-macro putd-buffer mem end
-macro sim-stack-cnt putd-buffer PUTD_BUFFER_CAP + end 
-macro ops-cnt sim-stack SIM_STACK_CAP 8 * + end 
-macro ops ops-cnt 8 + end
-
-macro compile-ops 
-"BITS 64\n" puts
-  "segment .text\n" puts
-  "print:\n" puts
-  "    mov     r9, -3689348814741910323\n" puts
-  "    sub     rsp, 40\n" puts
-  "    mov     BYTE [rsp+31], 10\n" puts
-  "    lea     rcx, [rsp+30]\n" puts
-  ".L2:\n" puts
-  "    mov     rax, rdi\n" puts
-  "    lea     r8, [rsp+32]\n" puts
-  "    mul     r9\n" puts
-  "    mov     rax, rdi\n" puts
-  "    sub     r8, rcx\n" puts
-  "    shr     rdx, 3\n" puts
-  "    lea     rsi, [rdx+rdx*4]\n" puts
-  "    add     rsi, rsi\n" puts
-  "    sub     rax, rsi\n" puts
-  "    add     eax, 48\n" puts
-  "    mov     BYTE [rcx], al\n" puts
-  "    mov     rax, rdi\n" puts
-  "    mov     rdi, rdx\n" puts
-  "    mov     rdx, rcx\n" puts
-  "    sub     rcx, 1\n" puts
-  "    cmp     rax, 9\n" puts
-  "    ja      .L2\n" puts
-  "    lea     rax, [rsp+32]\n" puts
-  "    mov     edi, 1\n" puts
-  "    sub     rdx, rax\n" puts
-  "    xor     eax, eax\n" puts
-  "    lea     rsi, [rsp+32+rdx]\n" puts
-  "    mov     rdx, r8\n" puts
-  "    mov     rax, 1\n" puts
-  "    syscall\n" puts
-  "    add     rsp, 40\n" puts
-  "    ret\n" puts
-  "global _start\n" puts
-  "_start:\n" puts
-  "    mov [args_ptr], rsp\n" puts
-
- 0 while dup ops-cnt @64 < do
- dup sizeof(Op) * ops +
-
- if dup Op.type @64 OP_PUSH_INT = do
-
-
-"    ;; -- push int " puts dup Op.operand @64 putd " --\n" puts
-       "    mov rax, "       puts dup Op.operand @64 putd "\n" puts
-       "    push rax\n"      puts
-else if dup Op.type @64 OP_PLUS = do
-"    ;; -- plus --\n" puts
-       "    pop rax\n" puts
-       "    pop rbx\n" puts
-       "    add rax, rbx\n" puts
-       "    push rax\n" puts
-else if dup Op.type @64 OP_PRINT = do
-        "    ;; -- print --\n" puts
-        "    pop rdi\n" puts
-        "    call print\n" puts
-else 
- here eputs ": unreachable\n" eputs 1 exit
- end end end 
- drop 1 + 
- end 
- drop
-
-  "    mov rax, 60\n" puts
-  "    mov rdi, 0\n" puts
-  "    syscall\n" puts
-  "segment .bss\n" puts
-  "args_ptr: resq 1\n" puts
-  "mem: resb " puts MEM_CAPACITY putd "\n" puts
+proc fputloc ptr int in 
+memory fd sizeof(u64) end 
+fd !64
+dup Loc.file-path ptr+ @Str fd @64 fputs
+":"                         fd @64 fputs
+dup Loc.row ptr+ @64        fd @64 fputu
+":"                         fd @64 fputs
+dup Loc.col ptr+ @64        fd @64 fputu
+drop 
 end 
+inline proc putloc ptr in stdout fputloc end 
+inline proc eputloc ptr in stderr fputloc end
+// end Loc
 
 
+/// TOKENS
+const TOKEN_INT      1 offset end
+const TOKEN_WORD     1 offset end
+const TOKEN_KEYWORD  1 offset end
+const TOKEN_STR      1 offset end
+const TOKEN_CHAR     1 offset end
+const TOKEN_CSTR     1 offset end
+const COUNT_TOKENS   1 offset end 
 
+const KEYWROD_IF     1 offset end
+const KEYWROD_IFSTAR 1 offset end
+const KEYWROD_ELSE   1 offset end
+const KEYWROD_END    1 offset end
+const KEYWROD_WHILE  1 offset end
+const KEYWROD_DO     1 offset end
+const KEYWROD_INCLUDE 1 offset end
+const KEYWROD_MEMORY  1 offset end
+const KEYWROD_PROC    1 offset end
+const KEYWROD_CONST   1 offset end
+const KEYWROD_OFFSET  1 offset end
+const KEYWROD_RESET   1 offset end
+const KEYWROD_ASSERT  1 offset end
+const KEYWROD_IN      1 offset end
+const KEYWROD_BIKESHEDER 1 offset end
+const KEYWROD_INLINE     1 offset end
+const KEYWROD_HERE       1 offset end
+const KEYWROD_KEYWORDS   1 offset end
 
+proc keyword-by name
+int ptr
+--
+int bool
+in 
+memory name sizeof(Str) end
+name !Str
+true 
+assert "exhaustive keyword handling" COUNT_KEYWORDS 17 = end
+            dup KEYWORD_IF          = if  "if"
+  else dup KEYWORD_IFSTAR      = if* "if*"
+  else dup KEYWORD_ELSE        = if* "else"
+  else dup KEYWORD_END         = if* "end"
+  else dup KEYWORD_WHILE       = if* "while"
+  else dup KEYWORD_DO          = if* "do"
+  else dup KEYWORD_INCLUDE     = if* "include"
+  else dup KEYWORD_MEMORY      = if* "memory"
+  else dup KEYWORD_PROC        = if* "proc"
+  else dup KEYWORD_CONST       = if* "const"
+  else dup KEYWORD_OFFSET      = if* "offset"
+  else dup KEYWORD_RESET       = if* "reset"
+  else dup KEYWORD_ASSERT      = if* "assert"
+  else dup KEYWORD_IN          = if* "in"
+  else dup KEYWORD_BIKESHEDDER = if* "--"
+  else dup KEYWORD_INLINE      = if* "inline"
+  else dup KEYWORD_HERE        = if* "here"
+   else
+   0 NULL
+   here eputs ": unreachable\n" eputs 
+   1 exit 
+   end
+   rot drop
+   end
 
-macro push-op 
-ops-cnt @64 sizeof(Op) * ops +
-dup 8 + rot swap !64
-!64
-ops-cnt inc64
+const Token.type sizeof(u64) offset end
+const Token.loc sizeof(Loc) offset end
+const TOken.text sizeof(Str) offset end 
+const Token.value
+sizeof(u64)
+sizeof(Str) max
+offset
+end
+const sizeof(Token) reset end
+// TOKEN END
+
+// String buffer
+const STRBUF_CAP 32 1024 * end
+memory strbuf-size sizeof(int) end
+memory strbuf-start STRBUF_CAP end
+
+inline proc strbuf-end -- ptr in strbuf-start strbuf-size @int ptr+ end
+proc strbuf-append-char int in
+strbuf-size @int STRBUF_CAP >= if
+here eputs ": Assert Failed: string literal buffer overflow\n" eputs 
+1 exit
 end
 
-macro dump-ops
- 0 while ops-cnt @64 < do
- dup sizeof(Op) * ops + 
- "Type" puts dup @64 print 
- "Operand: " puts dup 8 + @64 print 
- "---------\n" puts
+strbuf-end !8
+strbuf-size inc64
+end
 
- end 
+proc strbuf-append-str int ptr in
+memory str sizeof(Str) end
+str !Str
+
+while str @Str.count 0 > do
+ str @Str.data @8 strbuf-append-char
+ str str-chop-one-left
+ end
+ end
+
+ proc strbuf-loc
+ ptr // this is loc
+ --
+ int ptr
+ in
+ memory start sizeof(ptr) end
+ strbuf-end start !ptr
+
+ dup Loc.file-path ptr+ @Str   strbuf-append-str
+ ":"                           strbuf-append-str
+ dup Loc.row ptr+ @64 tmp-utos strbuf-append-str
+ ":"                           strbuf-append-str
+ dup Loc.col ptr+ @64 tmp-utos strbuf-append-str
  drop
+
+ strbuf-end start @ptr ptr-diff
+ start @ptr
+ end
+ // END string buffer
+
+ // Lexer 
+ const Lexer.content   sizeof(Str) offset end
+ const Lexer.line      sizeof(Str) offset end
+const Lexer.line-start sizeof(ptr) offset end
+const Lexer.file-path  sizeof(Str) offset end
+ const Lexer.row       sizeof(Str) offset end
+const sizeof(Lexer) reset end
+
+proc lexter-next-line ptr in
+memory lexer sizeof(ptr) end
+lexer !64
+
+'\n'
+lexer @ptr Lexer.line ptr+
+lexer @ptr Lexer.content ptr+
+str-chop-by-delim
+
+lexer @ptr Lexer.line ptr+ offsetof(Str.data) ptr+ @ptr
+lexer @ptr Lexer.line-start ptr+
+!64
+
+lexer @ptr Lexer.row ptr+ inc64
 end
 
-macro simulate-ops
-0 while dup ops-cnt @64 < do
-dup sizeof(Op) * ops +
-if dup Op.type @64 OP_PUSH_INT = do
-dup Op.operand @64 //sim-stack-push
+proc lexer-get-loc
+ptr // loc
+ptr // lexer
+in 
+memory lexer sizeof(ptr) end
+lexer !ptr
+memory loc sizeof(ptr) end
+loc !ptr
+
+// File path
+sizeof(Str)
+lexer @ptr Lexer.file-path ptr+
+loc @ptr Loc.file-path ptr+
+memcpy 
+drop
+
+// row
+lexer @ptr Lexer.row ptr+ @int
+loc @ptr Loc.row ptr+ !int
+
+// col 
+lexer @ptr Lexer.line ptr+ offsetof(Str.data) ptr+ @ptr
+lexer @ptr Lexer.line-start ptr+ @ptr
+ptr-diff
+1 +
+loc @ptr Loc.col ptr+
+!int
 end
 
-macro program 
-OP_PUSH_INT 34 push-op
-OP_PUSH_INT 35 push-op
-OP_PLUS 0 push-op
-OP_PRINT 0 push-op
+proc lexer-consume-str-like-lit
+ptr // lexter ptr
+int //quote ptr
+--
+int ptr // string ptr
+bool // checking wether it's closed or not
+in
+memory quote sizeof(ptr) end
+lexer !ptr
+
+memory start sizeof(ptr) end
+strbuf-end start !ptr
+
+memory start sizeof(ptr) end
+strbuf-end start !ptr
+
+memory count sizeof(int) end 
+0 count ! int
+
+memory loc sizeof(Loc) end
+
+memory closed sizeof(bool) end
+false closed !bool
+
+lexter @ptr Lexer.line ptr+
+ while
+  dup ?str-empty lnot if
+  dup @Str.data @8 quote @int = if
+  dup str-chop-one-left
+  true closed !bool
+  false
+ else dup @Str.data @8 '\\' = if*
+ dup str-chop-one-left
+
+ dup ?str-empty if
+ loc lexer @ptr lexer-get-loc
+ loc eputloc ": ERR: unfinished escape sequence\n" eputs
+ 1 exit
+ end
+
+ dup @Str.data @8 'n' = if
+ '\n' strbuf-append-char
+ dup str-chop-one-left
+ count inc64
+ true
+ else dup @Str.data @8 '\\' = if*
+ '\\' strbuf-append-char
+ dup str-chop-one-left
+ count inc64 
+ true
+  else dup @Str.data @8 '\"' = if*
+ '\"' strbuf-append-char
+ dup str-chop-one-left
+ count inc64 
+ true
+  else dup @Str.data @8 '\'' = if*
+ '\'' strbuf-append-char
+ dup str-chop-one-left
+ count inc64 
+ true
+ else 
+ loc lexter @ptr lexer-get-loc
+ loc eputloc ": ERR: unknown escape character `
+ " eputs 1 over @Str.data eputs "`\n" eputs
+ 1 exit
+ false 
+ end
+ else 
+ dup @Str.data @8 strbuf-append-char
+ dup str-chop-one-left
+ count inc64
+ true
+ end
+ else false end
+do end 
+drop
+
+count @int start @ptr closed @bool
 end
-// add the rest of functionality later
-// add some convenience plz
+
+proc lexer-consume-strlit
+ ptr // lexer ptr 
+ int // quote
+ -- 
+ int ptr // the string itself
+in 
+memory loc sizeof(Loc) end
+memory lexer sizeof(ptr) end
+over lexer !ptr
+lexer-consume-str-like-lit lnot if
+loc lexter @ptr lexer-get-loc
+loc eputloc ": ERR: unclosed string literal\n" eputs
+1 exit
+end
+end
+
+ proc lexter-consume-charlit
+ ptr // lexer ptr 
+ int // quote
+ -- 
+ int ptr // the char itself(i.e it's pointer)
+in 
+memory loc sizeof(Loc) end
+memory lexer sizeof(ptr) end
+over lexer !ptr
+lexer-consume-str-like-lit lnot if
+loc lexter @ptr lexer-get-loc
+loc eputloc ": ERR: unclosed char literal\n" eputs
+1 exit
+end
+end
+
+proc lexer-next-Token
+ptr // Token
+ptr // lexer
+-- 
+bool 
+in memory lexer sizeof(ptr) end
+lexer !64
+memory token sizeof(ptr) end
+token !64
+
+memory word sizeof(Str) end
+
+lexer @ptr
+while
+dup Lexer.line ptr+ str-trim-left
+
+dup Lexer.line ptr+ ?str-empty lnot
+else 
+dup Lexer.line ptr+
+"//" rot @Str str-starts-with
+end 
+do dup lexer-next-line end
+
+dup Lexer.line ptr+ ?str-empty lnot if 
+token @ptr Token.loc ptr+
+lexer @ptr
+lexer-get-loc
+
+assert "Exhaustive token types handling in lexer-next-token" COUNT_TOKENS 6 = end
+
+dup Lexer.line ptr+ @Str.data @8 '"' = if
+// String literal
+dup Lexer.line ptr+ str-chop-one-left
+'"' lexer-consume-strlit word !Str
+word @Str token @ptr Token.value ptr+ !Str
+
+lexer @ptr Lexer.line ptr+ ?str-empty lnot if
+lexer @ptr Lexer.line ptr+ @Str.data @8 'c' = if
+lexer @ptr Lexer.line ptr+ str-chop-one-left
+0 strbuf-append-char
+token @ptr Token.value ptr+ offsetof(Str.count) ptr+ inc64
+TOKEN_CSTR token @ptr Token.type.ptr+ !64
+else
+TOKEN_STR token @ptr Token.type ptr+ !64
+end
+else dup Lexer.line ptr+ @Str.data @8 '\'' = if*
+// character literal
+dup Lexer.line ptr+ str-chip-one-left
+'\'' lexer-consume-charlit word !Str
+
+ word @Str.data @8 token @ptr Token.value ptr+ !int
+ else
+ token @ptr Token.loc ptr+ eputloc ": ERR: only a single byte character it allowed inside a character literal"
+ 1 exit 
+ end 
+
+ TOKEN_CHAR token @ptr Token.type ptr+ !64
+ else
+ // word or integer literal
+
+ ' ' // delimeter
+ word // word
+ rot Lexer.line ptr+ // line
+ str-chip-by-delim
+
+ word @Str try-parse-int if 
+ token @ptr Token.value ptr+ !64
+ TOKEN_INT token @ptr Token.type ptr+ !64
+ else drop word @Str keyword-by-name if*
+ token @ptr Token.value ptr+ !64
+ TOKEN_KEYWORD token @ptr Token.type ptr+ !64
+ else drop 
+ word @Str token @ptr Token.value ptr+ !Str
+ TOKEN_WORD token @ptr Token.type ptr+ !64
+ end
+ end
+
+ word @Str token @ptr Token.text ptr+ !Str
+
+ true
+ else
+ drop // lexer
+ false
+ end
+ end
+
+ proc lex-file ptr in
+ memory file-path-cstr sizeof(ptr) end
+ file-path-cstr !64
+
+ memory lexer sizeof(Lexer) end
+ sizeof(Lexer) 0 lexer memset drop
+ file-path-cstr @ptr map-file lexer Lexer.content ptr+ !Str
+file-path-cstr @ptr cstr-to-str lexer Lexer.file-path ptr+ !Str
+
+memory token sizeof(Token) end
+while token lexer lexer-next-token do
+
+assert "Exhaustive handling of token types in lex-file" COUNT_TOKENS 6 = end
+
+token Token.loc ptr+ // loc
+dup Loc.file-path ptr+ @Str puts ":" puts
+dup Loc.row ptr+ @64 putu        ":" puts
+dup Loc.col ptr+ @64 putu        ":" puts
+drop // loc
+
+token Token.type ptr= @64 // token.type
+dup TOKEN_INT = if
+"[INTEGER] " puts token Token.value ptr+ @int putu "\n" puts
+else dup TOKEN_WORD = if*
+"[WORD] " puts token Token.value ptr+ @Str puts "\n" puts
+else dup TOKEN_STR = if*
+"[STR] \"" puts token Token.value ptr+ @Str puts "\"\n" puts
+else dup TOKEN_CSTR = if*
+"[CSTR] \"" puts tokedn Token.value ptr+ @Str puts "\"\n" puts
+else dup TOKEN_CHAR = if*
+"[CHAR] " puts token Token.value ptr+ @int putu "\n" puts
+else dup TOKEN_KEYWORD = if*
+"[KEYWORD] " puts token Token.value ptr+ @int keyword-name puts "\n" puts
+else
+here eputs ":Unreachable. unknown token type.\n" eputs
+1 exit
+end
+
+drop // token.type
+end
+end
+// NED Lexer
+
+
+
+ 

@@ -1,6 +1,11 @@
 import sys
 import subprocess
+import os
+import shlex
 from os import path
+
+TORTH_EXT = '.torch'
+RET_STACK_CAP = 640000
 
 iota_counter = 0
 def iota(reset=False):
@@ -12,11 +17,18 @@ def iota(reset=False):
     return result
 
 OP_PUSH_INT = iota(True)
+OP_PUSH_BOOL = iota()
 OP_PUSH_STR = iota()
 OP_PUSH_CSTR = iota()
+OP_PUSH_PTR = iota()
+OP_PUSH_GLOBAL_MEM = iota()
+OP_PUSH_LOCAL_MEM = iota()
+
+
 OP_PLUS = iota()
 OP_MINUS = iota()
 OP_MULT = iota()
+OP_MAX = iota()
 OP_DIV = iota()
 OP_MOD = iota()
 OP_EQUAL = iota()
@@ -33,6 +45,19 @@ OP_NOT = iota()
 OP_PRINT = iota()
 OP_DUP = iota()
 OP_MEM = iota()
+PROC = iota()
+SKIP_PROC = iota()
+PREP_PROC = iota()
+CALL = iota()
+RETURN = iota()
+
+
+CONST = iota()
+OFFSET= iota()
+RESET = iota()
+ASSERT = iota()
+IN = iota()
+INLINED = iota()
 OP_SWAP = iota()
 OP_DROP = iota()
 OP_OVER = iota()
@@ -40,26 +65,33 @@ OP_ROT = iota()
 
 OP_LOAD = iota()
 OP_STORE = iota()
+OP_LOAD8 = iota()
+OP_STORE8 = iota()
+OP_LOAD16 = iota()
+OP_STORE16 = iota()
+OP_LOAD32 = iota()
+OP_STORE32 = iota()
 OP_LOAD64 = iota()
 OP_STORE64 = iota()
-FORTH_LOAD = iota()
-FORTH_STORE = iota()
-FORTH_LOAD64 = iota()
-FORTH_STORE64 = iota()
 CAST_PTR = iota()
+CAST_INT = iota()
+CAST_BOOL = iota()
 
 OP_SYSCALL0 = iota()
 OP_SYSCALL1 = iota()
 OP_SYSCALL2 = iota()
 OP_SYSCALL3 = iota()
+STOP = iota()
 
 
 
 ARGC = iota()
 ARGV = iota()
+ENVP = iota()
 HERE = iota()
 
 OP_IF = iota()
+OP_IFSTAR = iota()
 OP_ELSE = iota()
 OP_WHILE = iota()
 OP_DO = iota()
@@ -77,16 +109,22 @@ TOKEN_CSTR = iota()
 TOKEN_CHAR = iota()
 COUNT_TOKENS = iota()
 
+DATA_TYPE = iota(True)
+INT = iota()
+BOOL = iota()
+PTR = iota()
+
 MEM_CAPACITY = 640000
 STR_CAPACITY = 640000
 ARG_CAPACITY = 640000
 
 
-assert COUNT_OPS == 38, "update BUILTIN_WORDS"
+assert COUNT_OPS == 72, "update BUILTIN_WORDS"
 BUILTIN_WORDS = {
     "+": OP_PLUS,
     "-": OP_MINUS,
     "*": OP_MULT,
+    "max": OP_MAX,
     "/": OP_DIV,
     "%": OP_MOD,
     "=": OP_EQUAL,
@@ -102,6 +140,14 @@ BUILTIN_WORDS = {
     "|": OP_BOR,
     "print": OP_PRINT,
     "if": OP_IF,
+    "if*": OP_IFSTAR,
+    "proc": PROC,
+    "const": CONST,
+    "offset": OFFSET,
+    'reset': RESET,
+    'assert': ASSERT,
+    'in': IN,
+    'inline': INLINED,
     "else": OP_ELSE,
     "end": OP_END,
     "dup": OP_DUP,
@@ -118,14 +164,21 @@ BUILTIN_WORDS = {
     "swap": OP_SWAP,
     "drop": OP_DROP,
     "rot": OP_ROT,
+    "!8": OP_STORE8,
+    "@8": OP_LOAD8,
+    "!16": OP_STORE16,
+    "@16": OP_LOAD16,
+    "!32": OP_STORE32,
+    "@32": OP_LOAD32,
     ".64" : OP_STORE64,
     ",64" : OP_LOAD64,
-    "!" : FORTH_STORE,
-    "@" : FORTH_LOAD,
-    "!64": FORTH_STORE64,
-    "@64" : FORTH_LOAD64,
     "cast(ptr)" : CAST_PTR,
+    "cast(int)": CAST_INT,
+    "cast(bool)": CAST_BOOL,
+    "envp": ENVP,
     "here": HERE,
+    "HALT": STOP,
+
 
 }
 
@@ -137,6 +190,7 @@ def loc_str(loc):
 
 def simulate(program, argv):
     stack = []
+    call_stack = []
     mem = bytearray(1+STR_CAPACITY + MEM_CAPACITY+ ARG_CAPACITY)
     str_buf_ptr = 1
     args_buf_ptr = 1 + STR_CAPACITY
@@ -163,7 +217,7 @@ def simulate(program, argv):
     stack.append(len(argv))
     ip = 0
     while ip < len(program):
-        assert COUNT_OPS == 38, "Exhaustive handling of operations"
+        assert COUNT_OPS == 72, "Exhaustive handling of operations"
         op = program[ip]
         if op['type'] == OP_PUSH_INT:
             stack.append(op['value'])
@@ -237,17 +291,6 @@ def simulate(program, argv):
             stack.append(c)
             ip +=1
         
-        elif op['type'] == FORTH_LOAD:
-            addr = stack.pop()
-            byte = mem[addr]
-            stack.append(byte)
-            ip+=1
-
-        elif op['type'] == FORTH_STORE:
-            store_addr = stack.pop()
-            store_val = stack.pop()
-            mem[store_addr] = store_val & 0xFF
-            ip+=1
         elif op['type'] == OP_LOAD64:
             addr = stack.pop()
             _byte = bytearray(8)
@@ -266,26 +309,9 @@ def simulate(program, argv):
                 mem[store_addr64] = byte
                 store_addr64 +=1
             ip+=1
-        elif op['type'] == FORTH_LOAD64:
-            addr = stack.pop()
-            _byte = bytearray(8)
-            for offset in range(0,8):
-                _byte[offset] = mem[addr+offset]
-            stack.append(int.from_bytes(_byte,byteorder="little"))
-            ip+=1
-        elif op['type'] == FORTH_STORE64:
-            store_val = stack.pop()
-            store_val64 = store_val.to_bytes(
-                length=8, byteorder="little", signed=(store_val<0)
-            )
-            store_addr64 = stack.pop()
-            for byte in store_val64:
-                mem[store_addr64] = byte
-                store_addr64 +=1
-            ip+=1
         elif op['type'] == HERE:
             val = ("%s:%d:%d" % op['loc']).encode('utf-8')
-            n = len(value)
+            n = len(val)
             stack.append(n)
             if ip not in str_ptrs:
                 str_ptr = str_buf_ptr + str_size
@@ -361,6 +387,16 @@ def simulate(program, argv):
             assert False, "unreachable, All macros should be eliminated at compilation"
         elif op['type'] == INCLUDE:
             assert False, "includes should be expanded before simulation"
+        elif op['type'] == SKIP_PROC:
+            ip = op['jmp']
+        elif op['type'] == PREP_PROC:
+            ip+=1
+        elif op['type'] == CALL:
+            call_stack.append(ip+1)
+            ip = op['value']
+        elif op['type'] == RETURN:
+            ip = call_stack.pop()
+            
 
         elif op['type'] == OP_MEM:
             stack.append(STR_CAPACITY)
@@ -439,148 +475,7 @@ def simulate(program, argv):
             assert False, "unreachable"
 
 
-def type_check_program(program):
-    stack = []
-    block_stack = []
-    for ip in range(len(program)):
-        op = program[ip]
-        if op['type'] == OP_PUSH_INT:
-            stack.append(0, op['loc'])
-        elif op['type'] == OP_PUSH_STR:
-            stack.append('str',op['loc'])
-            stack.append('ptr', op['loc'])
-        elif op['type'] == OP_IF:
-            if len(stack) < 1:
-                print("%s:%d:%d: not enough arguments for the IF instruction" % loc_str(op['loc']))
-                exit(1)
-                if stack.pop()[0] != bool:
-                    print("%s:%d:%d: IF instruction requires a boolean on the stack" % loc_str(op['loc']))
-                    exit(1)
-        elif op['type'] == OP_ELSE:
-            if len(stack) < 1:
-                print("%s:%d:%d: not enough arguments for the ELSE instruction" % loc_str(op['loc']))
-                exit(1)
-                if stack.pop()[0] != bool:
-                    print("%s:%d:%d: ELSE instruction requires a boolean on the stack" % loc_str(op['loc']))
-                    exit(1)
-                
-        elif op['type'] == OP_END:
-            if program[op['jmp']]['type'] == OP_WHILE:
-                if len(stack) < 1:
-                    print("%s:%d:%d: not enough arguments for the END instruction" % loc_str(op['loc']))
-                    exit(1)
-                    if stack.pop()[0] != bool:
-                        print("%s:%d:%d: END instruction requires a boolean on the stack" % loc_str(op['loc']))
-                        exit(1)
-        elif op['type'] == OP_DO:
-            if len(stack) < 1:
-                print("%s:%d:%d: not enough arguments for the DO instruction" % loc_str(op['loc']))
-                exit(1)
-                a_type, a_loc = stack.pop()
-                if a_type != bool:
-                    print("%s:%d:%d: DO instruction requires a boolean on the stack, got %s" % (loc_str(op['loc']), a_type), file=sys.stderr)
-        elif op['type'] == OP_WHILE:
-            pass
 
-        elif op['type'] == OP_PLUS:
-            if len(stack) < 2:
-                print("%s:%d:%d: not enough arguemtns for the PLUS operation" % loc_str(op['loc']))
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
-                if not isinstance(a_type, int) or not isinstance(b_type, int):
-                    print("%s:%d:%d: PLUS operation requires two integers, got %s and %s" % (loc_str(op['loc']), a_type, b_type))
-                    exit(1)
-                stack.append((0, op['loc']))
-
-        elif op['type'] == OP_MINUS:
-            if len(stack) < 2:
-                print("%s:%d:%d: not enough arguments for the MINUS operation" % loc_str(op['loc']))
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
-                if not isinstance(a_type, int) or not isinstance(b_type, int):
-                    print("%s:%d:%d: MINUS operation requires two integers, got %s and %s" % (loc_str(op['loc']), a_type, b_type))
-                    exit(1)
-                stack.append((0, op['loc']))
-
-        elif op['type'] == OP_MULT:
-            if len(stack) < 2:
-                print("%s:%d:%d: not enough arguments for the MULT operation" % loc_str(op['loc']))
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
-                if not isinstance(a_type, int) or not isinstance(b_type, int):
-                    print("%s:%d:%d: MULT operation requires two integers, got %s and %s" % (loc_str(op['loc']), a_type, b_type))
-                    exit(1)
-                stack.append((0, op['loc']))
-        elif op['type'] == OP_DIV:
-            if len(stack) < 2:
-                print("%s:%d:%d: not enough arguments for the DIV operation" % loc_str(op['loc']))
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
-                if not isinstance(a_type, int) or not isinstance(b_type, int):
-                    print("%s:%d:%d: DIV operation requires two integers, got %s and %s" % (loc_str(op['loc']), a_type, b_type))
-                    exit(1)
-                stack.append((0, op['loc']))
-        elif op['type'] == OP_GT:
-            if len(stack) < 2:
-                print("%s:%d:%d: not enough arguments for the GT operation" % loc_str(op['loc']))
-                exit(1)
-                a = stack.pop()
-                b = stack.pop()
-                if not isinstance(a, bool) or not isinstance(b, bool):
-                    print("%s:%d:%d: GT operation requires two booleans, got %s and %s" % (loc_str(op['loc']), a, b), file=sys.stderr)
-                    exit(1)
-                stack.append((0, op['loc']))
-
-        elif op['type'] == OP_PRINT:
-            if len(stack) < 1:
-                print("%s:%d:%d: not enough arguments for the DUMP instruction" % loc_str(op['loc']))
-                exit(1)
-            stack.pop()
-        
-        elif op['type'] == OP_DROP:
-            if len(stack) < 1:
-                print("%s:%d:%d: not enough arguments for the DROP instruction" % loc_str(op['loc']))
-                exit(1)
-            stack.pop()
-        elif op['type'] == OP_OVER:
-            if len(stack) < 2:
-                print("%s:%d:%d: not enough arguments for the OVER instruction" % loc_str(op['loc']))
-                exit(1)
-            a = stack.pop()
-            b = stack.pop()
-            stack.append(b)
-            stack.append(a)
-            stack.append(b)
-        elif op['type'] == OP_DUP:
-            if len(stack) < 1:
-                print("%s:%d:%d: not enough arguments for the DUP instruction" % loc_str(op['loc']), file=sys.stderr)
-                exit(1)
-            a = stack.pop()
-            stack.append(a)
-            stack.append(a)
-        
-        elif op['type'] == OP_SYSCALL1:
-            if len(stack) < 1:
-                print("%s:%d:%d: not enough arguments for the SYSCALL1 instruction" % loc_str(op['loc']))
-                exit(1)
-            if len(stack) < 2:
-                print("%s:%d:%d: not enough arguments for the SYSCALL3 instruction" % loc_str(op['loc']))
-                exit(1)
-            for i in range(1):
-                stack.pop()
-                stack.push((0, op['loc']))
-        elif op['type'] == OP_SYSCALL3:
-            if len(stack) < 4:
-                print("%s:%d:%d: not enough arguments for the SYSCALL3 instruction" % loc_str(op['loc']))
-                exit(1)
-            for i in range(3):
-                stack.pop()
-                stack.push((0, op['loc']))
-        
-        else: 
-            assert False, "unreachable"
-    if len(stack) != 0:
-        print("%s:%d:%d: ERR: unhandled data on the stack" % stack.pop()[1])
 
 def compile_to_nasm_linux_x86_64(program, out_file_path):
     strs = []
@@ -639,7 +534,8 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
         out.write("global _start\n")
         out.write("_start:\n")
         out.write("     mov [args_ptr], rsp\n")
-
+        out.write("    mov rax, ret_stack_end\n")
+        out.write("    mov [ret_stack_rsp], rax\n")
         for ip in range(len(program)):
             op = program[ip]
             # assert COUNT_OPS == 29, "Exhaustive handling of ops in compilation"
@@ -656,6 +552,39 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
                 out.write("    push rax\n")
                 out.write("    push str_%d\n" % len(strs))
                 strs.append(value)
+            elif op['type'] == OP_PUSH_CSTR:
+                value = op['value'].encode('utf-8') +b'\0'
+                out.write("    push str_%d\n" %len(strs))
+                strs.append(value)
+            elif op['type'] == OP_PUSH_GLOBAL_MEM:
+                out.write("    ;; -- global var --\n")
+                out.write("    mov rax, mem\n")
+                out.write("    add rax, %d\n" % op['value'])
+                out.write("    push rax\n")
+            elif op['type'] == OP_PUSH_LOCAL_MEM:
+                out.write("    mov rax, [ret_stack_rsp]\n")
+                out.write("    add rax, %d\n" % op['value'])
+                out.write("    push rax\n")
+            elif op['type'] == SKIP_PROC:
+                out.write("    jmp addr_%d\n" % value['jmp'])
+            elif op['type'] == PREP_PROC:
+                out.write("    sub rsp, %d\n" % op['jmp'])
+                out.write("    mov [ret_stack_rsp], rsp\n")
+                out.write("    mov rsp, rax\n")
+            elif op['type'] == CALL:
+                out.write("    mov rax, rsp\n")
+                out.write("     mov rsp, [ret_stack_rsp]\n")
+                out.write("    call addr_%d\n" %op['value'])
+                out.write("    mov [ret_stack_rsp], rsp\n")
+                out.write("    mov rsp, rax\n")
+            elif op['type'] == INLINED:
+                pass
+            elif op['type'] == RETURN:
+                out.write("    mov rax, rsp\n")
+                out.write("    mov rsp, [ret_stack_rsp]\n")
+                out.write("    add rsp, %d\n" % op['value'])
+                out.write("    ret\n")
+                
             elif op['type'] == OP_PLUS:
                 out.write("    pop rax\n")
                 out.write("    pop rbx\n")
@@ -670,6 +599,12 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
                 out.write("    pop rax\n")
                 out.write("    pop rbx\n")
                 out.write("    mul rbx\n")
+                out.write("    push rax\n")
+            elif op['type'] == OP_MAX:
+                out.write("    pop rax\n")
+                out.write("    pop rbx\n")
+                out.write("    cmp rbx, rax\n")
+                out.write("    cmovge rax, rbx\n")
                 out.write("    push rax\n")
             elif op['type'] == OP_DIV:
                 out.write("    xor rdx, rdx\n")
@@ -765,10 +700,14 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
                 out.write("     pop rax\n")
                 out.write("    not rax\n")
                 out.write("    push rax\n")
-            elif op['type'] == OP_IF:
+            elif op['type'] == OP_IF or op['type'] == OP_IFSTAR:
                 out.write("    ;; -- if --\n")
+                out.write("    pop rax\n")
+                out.write("    test rax, rax\n")
+                out.write("    jz addr_%d\n" % op['jmp'])
             elif op['type'] == OP_WHILE:
                 out.write("    ;; -- while --\n")
+                pass
             elif op['type'] == OP_ELSE:
                 out.write("    ;; -- else --\n")
                 out.write("    jmp addr_%d\n" % op['jmp'])
@@ -783,6 +722,7 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
                 out.write("    pop rax\n")
                 out.write("    test rax, rax\n")
                 out.write("    jz addr_%d\n" % op['jmp'])
+                
             elif op['type'] == OP_MEM:
                 out.write("    ;; -- mem --\n")
                 out.write("    push mem\n")
@@ -797,6 +737,28 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
                 out.write("    pop rbx\n")
                 out.write("    pop rax\n")
                 out.write("    mov [rax], bl\n")
+            elif op['value'] == OP_STORE8:
+                out.write("    pop rax\n")
+                out.write("    pop rbx\n")
+                out.write("    mov [rax], bl\n")
+            elif op['value'] == OP_LOAD16:
+                out.write("    pop rax\n")
+                out.write("    xor rbx, rbx\n")
+                out.write("    mov bx, [rax]\n")
+                out.write("    push rbx\n")
+            elif op['value'] == OP_STORE16:
+                out.write("    pop rax\n")
+                out.write("    pop rbx\n")
+                out.write("    mov [rax], bx\n")
+            elif op['value'] == OP_LOAD32:
+                out.write("    pop rax\n")
+                out.write("    xor rbx, rbx\n")
+                out.write("    mov ebx, [rax]\n")
+                out.write("    push rbx\n")
+            elif op['value'] == OP_STORE32:
+                out.write("    pop rax\n")
+                out.write("    pop rbx\n")
+                out.write("    mov [rax], ebx\n")
             elif op['type'] == OP_LOAD64:
                 out.write('    ;; -- load --\n')
                 out.write("    pop rax\n")
@@ -804,28 +766,6 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
                 out.write("    mov rbx, [rax]\n")
                 out.write("    push rbx\n")
             elif op['type'] == OP_STORE64:
-                out.write("    ;; -- store --\n")
-                out.write("    pop rbx\n")
-                out.write("    pop rax\n")
-                out.write("    mov [rax], rbx\n")
-            elif op['type'] == FORTH_LOAD:
-                out.write('    ;; -- load --\n')
-                out.write("    pop rax\n")
-                out.write("    xor rbx, rbx\n")
-                out.write("    mov bl, [rax]\n")
-                out.write("    push rbx\n")
-            elif op['type'] == FORTH_STORE:
-                out.write("    ;; -- store --\n")
-                out.write("    pop rbx\n")
-                out.write("    pop rax\n")
-                out.write("    mov [rax], bl\n")
-            elif op['type'] == FORTH_LOAD64:
-                out.write('    ;; -- load --\n')
-                out.write("    pop rax\n")
-                out.write("    xor rbx, rbx\n")
-                out.write("    mov rbx, [rax]\n")
-                out.write("    push rbx\n")
-            elif op['type'] == FORTH_STORE64:
                 out.write("    ;; -- store --\n")
                 out.write("    pop rbx\n")
                 out.write("    pop rax\n")
@@ -848,6 +788,15 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
                 out.write("    push rax\n")
                 out.write("    push str_%d\n" % len(strs))
                 strs.append(value)
+            elif op['type'] == ENVP:
+                out.write("    mov rax, [args_ptr]\n")
+                out.write("    mov rax, [rax]\n")
+                out.write("    add rax, 2\n")
+                out.write("    shl rax, 3\n")
+                out.write("    mov rbx, [args_ptr]\n")
+                out.write("    add rbx, rax\n")
+                out.write("    push rbx\n")
+
             elif op['type'] == CAST_PTR:
                 out.write("    ;; -- cast(ptr) --\n")
             elif op['type'] == OP_SYSCALL0:
@@ -902,6 +851,8 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
                 out.write("    push rbx\n")
                 out.write("    push rax\n")
                 out.write("    push rcx\n")
+            elif op['type'] == STOP:
+                pass
             
 
 
@@ -921,16 +872,21 @@ def compile_to_nasm_linux_x86_64(program, out_file_path):
             out.write("str_%d: db %s\n" % (index, ','.join(map(hex, list(bytes(s, 'utf-8'))))))
         out.write("segment .bss\n")
         out.write("args_ptr: resq 1\n")
+        out.write("ret_stack_rsp: resq 1\n")
+        out.write("ret_stack: resb %d\n" %RET_STACK_CAP)
+        out.write("ret_stack_end:\n")
         out.write("mem: resb %d\n" % MEM_CAPACITY)
 
 
-def compile_to_wasm(program, out_file_path):
-    STACK_SIZE = STR_CAPACITY + MEM_CAPACITY
-    strs = []
-    str_offsets = {}
-    cur_off = 0
-    with open(out_file_path, "w") as out:
-        out.write("(module\n")
+# def compile_to_wasm(program, out_file_path):
+#     STACK_SIZE = STR_CAPACITY + MEM_CAPACITY
+#     strs = []
+#     str_offsets = {}
+#     cur_off = 0
+#     with open(out_file_path, "w") as out:
+#         out.write("(module\n")
+
+
 
 
 
@@ -943,7 +899,7 @@ def usage():
     # print("    wasm <file>   Compile the program to WebAssembly")
 
 def parse_token_as_op(token):
-    assert COUNT_TOKENS == 3, "Exhuastive token handing in parse_token_as_op"
+    assert COUNT_TOKENS == 5, "Exhuastive token handing in parse_token_as_op"
     if token['type'] == TOKEN_WORD:
         if token['value'] in BUILTIN_WORDS:
             return {'type': BUILTIN_WORDS[token['value']], 'loc': token['loc']}
@@ -967,7 +923,7 @@ def parse_token_as_op(token):
 def crossreference_block(program):
     stack = []
     for ip, op in enumerate(program):
-        assert COUNT_OPS == 29, "Exhaustive handling of ops in cross-ref"
+        assert COUNT_OPS == 72, "Exhaustive handling of ops in cross-ref"
         if op['type'] == OP_IF:
             stack.append(("if", ip))
         elif op['type'] == OP_ELSE:
@@ -1008,10 +964,143 @@ def find_col(line, start, predicate):
         i += 1
     return i
 
+def build_ops(tokens):
+    ops = []
+    procs = {}
+    current_proc = None
+    proc_block_depth = 0
+
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        is_word = token['type'] == TOKEN_WORD
+        if is_word and token['value'] == 'proc':
+            if current_proc is not None:
+                print("%s%d:%d: ERR: nested procs isn't allowed" % token['loc'])
+                exit(1)
+            assert index +1 < len(tokens) and tokens[index+1]['type'] == TOKEN_WORD, "expected proc name"
+            name = tokens[index+1]['value']
+            if name in procs:
+                print("%s:%d:%d: ERR: redfinition of proc `%s" % (token['loc'] + (name,)))
+                exit(1)
+            
+            skip_ip = len(ops)
+            ops.append({'type': SKIP_PROC, 'loc': token['loc']})
+            proc_addr = len(ops)
+            ops.append({'type': PREP_PROC, 'loc': token['loc'], 'value': 0})
+            procs[name] = proc_addr
+            current_proc = name
+            current_proc_skip_ip = skip_ip
+            proc_block_depth = 0
+
+            j = index + 2
+            while j < len(tokens) and not (tokens[j]['type'] == TOKEN_WORD and tokens[j]['value'] == 'in'):
+                j+=1
+                assert j < len(tokens), "unterminated proc"
+                index = j + 1
+                continue
+
+            if current_proc is not None and is_word and token['value'] == 'end' and proc_block_depth == 0:
+                ops.append({'type': RETURN, 'loc': token['loc'], 'value': 0})
+                ops[current_proc_skip_ip]['jmp'] = len(ops)
+                current_proc = None
+                current_proc_skip_ip = None
+                index +=1
+                continue
+
+            if is_word and token['value'] in ('if', 'while'):
+             if current_proc is not None:
+                proc_block_depth +=1
+                ops.append(parse_token_as_op(token))
+                index+=1
+                continue
+
+            if is_word and token['value'] == 'end':
+                if current_proc is not None:
+                    proc_block_depth -= 1
+                    ops.append(parse_token_as_op(token))
+                    index+=1
+                    continue
+
+                if is_word and token['value'] in procs:
+                    ops.append({'type': CALL, 'loc': token['loc'], 'value': procs[token['value']]})
+                    index+=1
+                    continue
+
+                ops.append(parse_token_as_op(token))
+                index+=1
+
+            if current_proc is not None:
+                print("ERR: unterminated proc `%s" % current_proc)
+
+            return ops
+
+def unescape_string(s):
+    return s.encode("utf-8").decode("unicode_escape").encode("latin-1").decode("utf-8")
+
+def find_string_literal_end(line,start,quote='"'):
+    while start< len(line):
+        if line[start] == "\\":
+         start +=2
+        elif line[start] == quote:
+            break
+        else:
+            start +=1
+            return start
+        
+   
+def lex_lines(file_path, lines):
+    row = 0
+    str_literal_buf = ""
+    
+    while col < len(lines):
+        line = lines[row]
+        col = find_col(lines, 0, lambda c: not c.isspace())
+        col_end = 0
+        while col < len(line):
+            loc = (file_path, row +1, col +1)
+            if line[col] == '"':
+                while row < len(lines):
+                    start = col
+                    if str_literal_buf == "":
+                        start +=1
+                    else:
+                        line = lines[row]
+                    col_end = find_string_literal_end(line, start)
+                    if col_end >= len(line) or line[col_end] !='"':
+                        str_literal_buf += line[start:]
+                        row+=1
+                        col=0
+                    else:
+                        str_literal_buf +=line[start:col_end]
+                        break
+                    if row >= len(lines):
+                        loc = (loc[0], loc[1], loc[2] + len(str_literal_buf))
+                        assert False, "unclosed string literal"
+                        exit(1)
+                    assert line[col_end] == '"'
+                    col_end +=1
+                    text_of_token = str_literal_buf
+                    str_literal_buf = ""
+                    # if col_end < len(line) and line[col_end] == "c":
+                    #     col_end+=1
+                    #     yield()
+                    # else:
+                    #     yield()
+                    col = find_col(line, col_end, lambda x: not x.isspace())
+                # elif line[col] == "'":
+                #     col_end = find_string_literal_end(line, col+1, quote="'")
+
+
+
 
 def lex_line(line):
-    col = find_col(line, 0, lambda c: not c.isspace())
+    row = 0
+    str_literal_buf = ""
+    
     while col < len(line):
+        linee = line[row]
+        col = find_col(line, 0, lambda c: not c.isspace())
         if line[col] == '"':
             col_end = find_col(line, col + 1, lambda x: x == '"')
             assert col_end < len(line), "unterminated string"
@@ -1116,7 +1205,7 @@ if __name__ == '__main__':
     program = load_program_from_file(file_path)
 
     if subcommand == "sim":
-        type_check_program(program)
+       # type_check_program(program)
         simulate(program, sys.argv[3:])
     elif subcommand == "com":
         if len(sys.argv) < 1:
@@ -1124,7 +1213,7 @@ if __name__ == '__main__':
             print("ERR: no input file provided for compilation")
             exit(1)
             program = load_program_from_file(program_path) 
-        type_check_program(program)
+        #type_check_program(program)
         compile_to_nasm_linux_x86_64(program, "output.asm")
         call_cmd(["nasm", "-felf64", "output.asm"])
         # link only the generated object (dump implemented in assembly)
