@@ -680,7 +680,7 @@ int ptr // data type name
 int // data type
 bool // found
 in
-memroy name sizoef(Str) end
+memory name sizoef(Str) end
 name !Str
 assert "Exhaustive handling of data types in datatype-by-name" COUNT_DATATYPES 3 = end
    name @Str "ptr" streq if DATATYPE_PTR true
@@ -708,4 +708,532 @@ assert "Exhaustive handling of data types in datatype-name" COUNT_DATATYPES 3 = 
   end
   // end datatype
 
- 
+  // BEGIN OPERATIONS
+  assert "Exhaustive push IR instructions definiton for data types" COUNT_DATATYPES 3 = end 
+  const OP_START           1 offset end
+const OP_PUSH_INT        1 offset end
+const OP_PUSH_BOOL       1 offset end
+const OP_PUSH_PTR        1 offset end
+const OP_PUSH_LOCAL_MEM  1 offset end
+const OP_PUSH_GLOBAL_MEM 1 offset end
+const OP_PUSH_STR        1 offset end
+const OP_PUSH_CSTR       1 offset end
+const OP_IF              1 offset end
+const OP_IFSTAR          1 offset end
+const OP_ELSE            1 offset end
+const OP_END             1 offset end
+const OP_SKIP_PROC       1 offset end
+const OP_PREP_PROC       1 offset end
+const OP_RET             1 offset end
+const OP_CALL            1 offset end
+const OP_INLINED         1 offset end
+const OP_WHILE           1 offset end
+const OP_DO              1 offset end
+const OP_INTRINSIC       1 offset end
+const COUNT_OPS             reset end
+
+proc op-type-as-str
+int // Op type
+--
+int ptr // str
+in
+ assert "Exhaustive handling of Op types in print-op-type" COUNT_OPS 20 = end
+         dup OP_START           =  if  "OP_START"
+  else dup OP_PUSH_INT        =  if* "OP_PUSH_INT"
+  else dup OP_PUSH_BOOL       =  if* "OP_PUSH_BOOL"
+  else dup OP_PUSH_PTR        =  if* "OP_PUSH_PTR"
+  else dup OP_PUSH_GLOBAL_MEM =  if* "OP_PUSH_GLOBAL_MEM"
+  else dup OP_PUSH_STR        =  if* "OP_PUSH_STR"
+  else dup OP_PUSH_CSTR       =  if* "OP_PUSH_CSTR"
+  else dup OP_INTRINSIC       =  if* "OP_INTRINSIC"
+  else dup OP_IF              =  if* "OP_IF"
+  else dup OP_IFSTAR          =  if* "OP_IFSTAR"
+  else dup OP_ELSE            =  if* "OP_ELSE"
+  else dup OP_END             =  if* "OP_END"
+  else dup OP_SKIP_PROC       =  if* "OP_SKIP_PROC"
+  else dup OP_PREP_PROC       =  if* "OP_PREP_PROC"
+  else dup OP_RET             =  if* "OP_RET"
+  else dup OP_CALL            =  if* "OP_CALL"
+  else dup OP_INLINED         =  if* "OP_INLINED"
+  else dup OP_WHILE           =  if* "OP_WHILE"
+  else dup OP_DO              =  if* "OP_DO"
+  else
+  here eputs ": unknown op type\n" eputs 1 exit
+  0 NULL
+  end 
+  rot drop
+  end
+
+  const Op.type sizeof(u64) offset end
+  const Op.operand sizeof(u64) offset end
+  const Op.token sizeof(Token) offset end
+  const sizeof(Op) reset end
+
+  const OPS_CAP 32 1024 * end
+  memory ops-count sizeof(u64) end
+  memory ops sizeof(Op) OPS_CAP * end
+
+  proc push-op
+  int //type
+  int //operand
+  ptr // token
+  in
+  memory op sizeof(Op) end
+  sizeof(Token) swap op Op.token ptr+ memcpy drop
+  op Op.operand ptr+ !int
+  op Op.type ptr+ !int
+
+  sizeof(Op) op OPS_CAP ops ops-count append-item lnot if 
+  here eputs ": ERR: ops overflow\n" eputs 1 exit
+  end drop 
+  end
+
+  inline proc push-op-by-ptr
+  ptr // ptr to op struct
+  in
+  dup Op.type ptr+ @int swap
+  dup Op.operand ptr+ @int swap
+  dup Op.token ptr+ swap drop
+  push-op
+  end
+
+  proc dump-ops in
+  0
+  while dup ops-count @64 < do
+  dup sizeof(Op) * ops +ptr
+  dup Op.token ptr+ Token.loc ptr+ putloc ": " puts
+  over putu " => " puts
+  dup Op.type ptr+ @64 op-type-as-str puts " " puts
+  dup Op.type ptr+ @64 OP_INTRINSIC = if
+  dup op.operand ptr= @64 intrinsic-name puts
+  else
+  dup Op.operand ptr+ @64 putu
+  end
+  "\n" puts
+  drop 
+  1 +
+  end 
+  drop 
+  end
+  // END OPERATIONS
+
+  // BEGIN Strlit 
+  const STRLITS_CAP 2 1024 * end
+  memory strlits-count sizeof(int) end
+  memory strlits sizeof(Str) STRLITS_CAP * end
+
+  proc strlit-define
+  int ptr
+  -- 
+  int 
+  in
+  memory strlit sizeof(Str) end
+  strlit !Str
+
+  sizeof(Str) strlit
+  STRLITS_CAP strlits
+  strlits-count
+  append-item lnot if
+  here eputs ": ERR: string literals capacity exceeded\n" eputs
+  1 exit
+  end
+  // END Strlit
+
+  // BEGIN const
+  const Const.name sizeof(Str) offset end
+  const Const.loc sizeof(Loc) offset end
+  const Const.value sizeof(u64) offset end
+  const Const.type sizeof(u64) offset end
+  const sizeof(Const) reset end
+
+  const CONST_CAP 1024 end
+  memory consts sizeof(Const) CONST_CAP * end
+  memory consts-count sizeof(u64) end
+
+  proc const-lookup
+  int ptr // name
+  --
+  ptr
+  in 
+  memory name sizeof(Str) end
+  name !Str
+
+  0 while
+  dup consts-count @64 < if
+  dup sizeof(Const) * consts +ptr Const.name ptr+ @Str
+  name @Str
+  streq
+  lnot 
+  else false end
+  do 1 + end
+
+  dup consts-count @64 < if
+  sizeof(Const) * consts +ptr
+  else
+  drop NULL
+  end
+  end
+
+  proc const-define
+  ptr // ptr to const struct
+  in
+  sizeof(Const) swap CONST_CAP consts consts-count append-item lnot if
+  here eputs ": ERR: constants definitions capacity exceeded\n" eputs 
+  1 exit
+  end
+  drop
+  end
+  // END const
+
+  // BEGIN TypeStack
+  const TypeFrame.type sizeof(int) offset end
+  const TypeFrame.loc sizeof(Loc) offset end
+  const TypeFrame.prev sizeof(ptr) offset end
+  const sizeof(TypeFrame)   reset end
+
+  const TypeStack.top sizeof(ptr) offset end
+  const TypeStack.count sizeof(int) offset end
+  const sizeof(TypeStack) reset end
+
+  const TYPE_FRAME_POOL_CAP 16 1024 * end
+  memory type-frame-pool TYPE_FRAME_POOL_CAP sizeof(TypeFrame) * end 
+  memory type-frame-pool-count sizeof(int) end
+
+  proc type-frame-alloc -- ptr in
+  type-frame-pool-count @int TYPE_FRAME_POOL_CAP >= if
+  here eputs ": ERR: Type Frame Pool overflow! we need human memory language instead of this shit"
+  1 exit 
+  end
+
+  type-frame-pool-count @int
+  sizeof(TypeFrame) *
+  type-frame-pool +ptr
+  
+  type-frame-pool-count inc64
+  end
+
+  proc type-stack-push
+  int // type
+  ptr // Loc
+  ptr // stack
+in 
+ memory stack sizeof(ptr) end
+ stack !ptr 
+
+ memory new-top sizeof(ptr) end
+ type-frame-alloc new-top !ptr
+
+ sizeof(Loc) swap new-top @ptr TypeFrame.loc ptr+ memcpy drop
+ new-top @ptr TypeFrame.type ptr+ !int
+
+ stack @ptr TypeSTack.top ptr+ @ptr
+ new-top @ptr TypeFrame.prev ptr+ !ptr
+
+ new-top @ptr
+ stack @ptr TypeStack.top ptr+ @ptr !ptr
+
+ stack @ptr TypeStack.count ptr+ inc64
+ end
+
+ proc type-stack-push-frame
+ ptr // frame
+ ptr // stack
+ in
+ swap
+ dup TypeFrame.type ptr+ @int
+ swap TypeFrame.loc ptr+
+ rot
+ type-stack-push
+ end
+
+ proc type-stack-OP_PREP_PROC
+ ptr // stack
+ in
+ dup TypeStack.count ptr+ dec64
+
+ TypeStack.top ptr+
+ dup @ptr NULL ptr!= if
+ dup @ptr TypeFrame.prev ptr+ @ptr
+ swap 
+ !ptr
+ else drop end
+ end
+
+ proc ?type-stack-empty ptr -- boll in TypeStack.top ptr+ @ptr NULL ptr= end
+
+ proc type-stack-dump
+ ptr // type stack
+ int // fd
+ in
+ memory fd sizeof(int) end
+ fd !int
+ TypeStack.top ptr+ @ptr
+ while dup NULL ptr!= do
+ dup TypeFrame.loc ptr+                      fd @int fputloc
+ ": NOTE: type `"                            fd @int fputs
+ dup TypeFrame.type ptr+ @int datatype-name  fd @int fputs
+ "`\n"                                       fd @int fputs
+
+ TypeFrame.prev ptr+ @ptr
+ end
+ drop
+ end
+
+ proc type-stack-reverse
+ ptr // inside
+ -- 
+ ptr // OP_PUSH_STR
+ in 
+ memory outs sizeof(ptr) end
+ sizeof(TypeStack) tmp-alloc outs !ptr
+
+ TypeStack.top ptr+ @ptr
+ while dup NULL ptr!= do
+ dup TypeFrame.type ptr+ @int
+
+ over TypeFrame.loc ptr+
+ outs @ptr
+ type-check-push
+
+ TypeFrame.prev ptr+ @ptr
+ end
+ drop
+
+ outs @ptr
+ end
+
+ // END TypeStack
+
+ // BEGIN proc
+const Proc.name sizeof(Str)       offset end
+const Proc.addr sizeof(u64)       offset end
+const Proc.loc  sizeof(Loc)       offset end
+const Proc.ins  sizeof(TypeStack) offset end
+const Proc.outs sizeof(TypeStack) offset end
+const Proc.inlinable sizeof(bool) offset end
+const Proc.size sizeof(int)       offset end
+const sizeof(Proc)                 reset end
+const PROCS_CAP 1024 end
+memory procs-count sizeof(u64) end
+memory procs sizeof(Proc) PROCS_CAP * end
+memory inside-proc sizeof(bool) end
+
+proc proc-lookup-by-name
+int ptr // proc name
+-- 
+
+ptr // proc
+in
+memory name sizeof(Str) end
+name !Str
+
+0 while 
+dup procs-count @64 < if
+dup sizeof(Proc) * procs +ptr Proc.name ptr+ @Str
+name @Str
+streq
+lnot
+else false end
+do 1 + end
+
+dup procs-count @64 < if
+sizeof(Proc) * procs +ptr
+else 
+drop NULL
+end
+end
+
+proc proc-lookup-by-addr
+int // proc addr
+--
+ptr // proc 
+int memory addr sizeof(int) end
+addr !int
+
+0 while 
+dup procs-count @64 < if
+dup sizeof(Proc) * proc +ptr Proc.addr ptr+ @int
+addr @int
+!=
+else false end
+do 1 + end
+
+dup procs-count @64 < if
+sizeof(Proc) * procs +ptr
+else 
+drop NULL
+end
+end
+
+proc proc-define 
+ptr // proc 
+in
+sizeof(Proc) swap PROCS_CAP procs procs-count append-item lnot if
+here eputs ": ERR: procedure definitions capacity exceeded\n" eputs 
+1 exit 
+end 
+drop
+end
+// END Proc
+
+// BEGIN MEMORY 
+cosnt Memory.name sizeof(Str) offset end
+const Memory.offset sizeof(u64) offset end
+const Memory.loc sizeof(Loc) offset end
+const sizeof(Memory) reset end
+
+const GLOBAL_MEMORIES_CAP 1024 end
+memory global-memories-count sizeof(u64) end
+memory global-memories sizeof(Memory) GLOBAL_MEMORIES_CAP * end
+memory global-memory-capacity sizeof(u64) end
+
+ const local_MEMORIES_CAP 1024 end
+memory local-memories-count sizeof(u64) end
+memory local-memories sizeof(Memory) LOCAL_MEMORIES_CAP * end
+memory local-memory-capacity sizeof(u64) end
+
+inline proc local-memories-clean in
+0 local-memories-count !64
+0 local-memory-capacity !64
+end
+
+proc local-memories-lookup
+int ptr // name
+--
+ptr // Memory
+in
+memory name sizeof(Str) end
+name !Str
+
+0 while
+dup local-memories-count @64 < if
+dup sizeof(Memory) * local-memories +ptr Memory.name ptr+ @Str
+name @Str
+streq
+lnot 
+else false end
+do 1 + end
+
+dup local-memories-count @64 < if
+sizeof(Memory) * local-memories +ptr
+else
+drop NULL
+end
+end
+
+proc global-memories-lookup
+  int ptr // name
+  --
+  ptr     // Memory
+in
+  memory name sizeof(Str) end
+  name !Str
+
+  0 while
+    dup global-memories-count @64 < if
+      dup sizeof(Memory) * global-memories +ptr Memory.name ptr+ @Str
+      name @Str
+      streq
+      lnot
+    else false end
+  do 1 + end
+
+  dup global-memories-count @64 < if
+    sizeof(Memory) * global-memories +ptr
+  else
+    drop NULL
+  end
+end
+
+proc local-memory-define
+ptr
+in
+sizeof(Memory) swap LOCAL_MEMORIES_CAP local-memories local-memories-count append-item lnot if
+here eputs ": ERR: local memory definitions capacity exceeded\n" eputs
+1 exit
+end
+drop
+end
+
+proc global-memory-define
+  ptr
+in
+  sizeof(Memory) swap GLOBAL_MEMORIES_CAP global-memories global-memories-count append-item lnot if
+    here eputs ": ERROR: global memory definitions capacity exceeded\n" eputs
+    1 exit
+  end
+  drop
+end
+// END Memory
+
+memory silent sizeof(bool) end
+inline proc located-here ptr in eputloc ": NOTE: located here\n" eputs end
+
+// BEGIN Code emitter
+proc fputdecstr
+int ptr
+int
+in
+memory fd sizeof(u64) end
+fd !64
+
+memory str sizeof(Str) end
+str !Str
+
+memory byte 2 end
+
+memory first sizeof(bool) end
+true first !bool
+
+while str @Str.count 0 > do
+first @bool if
+false first !OP_PUSH_BOOL
+else
+"," fd @64 fputs
+end
+
+str @Str.data @8 fd @64 fputu
+str str-chop-one-left
+end
+end
+
+proc generate-print-intel-linux-x86_64
+int // fd
+in
+memory out-fd sizeof(int) end
+out-fd !int 
+  "print:\n"                               out-fd @64 fputs
+  "    mov     r9, -3689348814741910323\n" out-fd @64 fputs
+  "    sub     rsp, 40\n"                  out-fd @64 fputs
+  "    mov     BYTE [rsp+31], 10\n"        out-fd @64 fputs
+  "    lea     rcx, [rsp+30]\n"            out-fd @64 fputs
+  ".L2:\n"                                 out-fd @64 fputs
+  "    mov     rax, rdi\n"                 out-fd @64 fputs
+  "    lea     r8, [rsp+32]\n"             out-fd @64 fputs
+  "    mul     r9\n"                       out-fd @64 fputs
+  "    mov     rax, rdi\n"                 out-fd @64 fputs
+  "    sub     r8, rcx\n"                  out-fd @64 fputs
+  "    shr     rdx, 3\n"                   out-fd @64 fputs
+  "    lea     rsi, [rdx+rdx*4]\n"         out-fd @64 fputs
+  "    add     rsi, rsi\n"                 out-fd @64 fputs
+  "    sub     rax, rsi\n"                 out-fd @64 fputs
+  "    add     eax, 48\n"                  out-fd @64 fputs
+  "    mov     BYTE [rcx], al\n"           out-fd @64 fputs
+  "    mov     rax, rdi\n"                 out-fd @64 fputs
+  "    mov     rdi, rdx\n"                 out-fd @64 fputs
+  "    mov     rdx, rcx\n"                 out-fd @64 fputs
+  "    sub     rcx, 1\n"                   out-fd @64 fputs
+  "    cmp     rax, 9\n"                   out-fd @64 fputs
+  "    ja      .L2\n"                      out-fd @64 fputs
+  "    lea     rax, [rsp+32]\n"            out-fd @64 fputs
+  "    mov     edi, 1\n"                   out-fd @64 fputs
+  "    sub     rdx, rax\n"                 out-fd @64 fputs
+  "    xor     eax, eax\n"                 out-fd @64 fputs
+  "    lea     rsi, [rsp+32+rdx]\n"        out-fd @64 fputs
+  "    mov     rdx, r8\n"                  out-fd @64 fputs
+  "    mov     rax, 1\n"                   out-fd @64 fputs
+  "    syscall\n"                          out-fd @64 fputs
+  "    add     rsp, 40\n"                  out-fd @64 fputs
+  "    ret\n"                              out-fd @64 fputs
+end
+
