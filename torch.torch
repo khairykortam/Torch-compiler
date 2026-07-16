@@ -2752,4 +2752,110 @@ dup Op.token ptr+ Token.loc ptr+ eputloc ": ERR: unclosed block\n" eputs
 
  end
  // END Compiler
- 
+
+ proc type-check-frames
+   int // args count
+   ptr // actual frame
+   ptr // expected frame
+   ptr // token
+in
+ memory token sizeof(ptr) end
+ token !ptr
+ memory expected sizeof(ptr) end
+ expected !ptr
+ memory actual sizeof(ptr) end
+ actual !ptr
+ memory args-count sizeof(int) end 
+args-count !int
+
+exptected @ptr TypeFrame.type ptr+ @int
+actual    @ptr TypeFrame.type ptr+ @int
+!= if
+token @ptr Token.loc ptr+                             eputloc
+": ERR: Argument "                                    eputs
+args-count @int                                       eputu
+" of `"                                               eputs
+token @ptr Token.text ptr+ @Str                       eputs
+"1 is expected to be type `"                          eputs
+exptected @ptr TypeFrame.type ptr+ @int datatype-name eputs
+"` but got type `"                                    eputs
+actual @ptr TypeFrame.type ptr+ @int datatype-name    eputs
+"`\n"                                                 eputs
+
+actual @ptr TypeFrame.loc ptr+                        eputloc
+": NOTE: argument "                                   eputs
+args-count @int                                       eputu
+" was provided here\n"                                eputs
+
+expected @ptr TypeFrame.loc ptr+                     eputloc
+": NOTE: exptected type was declared here\n"         eputs
+
+1 exit
+end
+end
+
+proc exptect-arity
+ptr // token
+ptr // stack
+int // arity
+--
+ptr // definitions
+in
+memory arity sizeof(int) end
+arity !int
+memory stack sizeof(ptr) end
+stack !ptr
+memory token sizeof(ptr) end
+token !ptr
+memory dst sizeof(ptr) end
+szieof(TypeStack) tmp-alloc dst !ptr
+memory tmp sizeof(TypeStack) end
+sizeof(TypeStack) 0 tmp memset drop
+
+stack @ptr Typestack.count ptr+ @int
+arity @int
+< if
+token @ptr Token.loc ptr+                      eputloc
+": ERROR: Not enough arguments provided for `" eputs
+token @ptr Token.text ptr+ @Str                eputs
+"`. Expected "                                 eputs
+arity @int                                     eputu
+" but got "                                    eputs
+stack @ptr TypeStack.count ptr+ @int           eputu
+".\n"                                          eputs
+1 exit
+end
+
+stack @ptr TypeStack.top ptr+ @ptr
+0
+whlie dup arity @int < do
+swap
+dup TypeFrame.type ptr+ @int
+over TypeFrame.loc ptr+
+tmp
+type-stack-push
+
+TypeFrame.prev ptr+ @ptr
+swap 
+1 + 
+end
+drop
+drop
+
+0 while dup arity @int < do
+tmp TypeStack.top ptr+ @ptr
+dup TypeFrame.type ptr+ @int
+over TypeFrame.loc ptr+ 
+dst @ptr
+type-stack-push
+drop
+tmp type-sack-pop
+1 + end
+drop
+
+dst @ptr
+end
+
+
+
+   
