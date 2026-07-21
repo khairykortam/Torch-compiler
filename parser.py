@@ -69,6 +69,13 @@ def introduce_proc(ctx, token, rtokens, inline=False):
             body_size=0,
         )
         ctx.current_proc = ctx.procs[proc_name]
+        while True:
+            if len(rtokens) == 0:
+                compiler_error(token.loc, "expected `in` to start the procedure body")
+                exit(1)
+            sig_token = rtokens.pop()
+            if sig_token.value == Keyword.IN:
+                break
     else:
         compiler_error(token.loc, "nested procedures not allowed")
         exit(1)
@@ -330,7 +337,7 @@ def parse_program_from_tokens(ctx, tokens, include_paths=None, included=0):
                 compiler_error(token.loc, "keyword `%s` only valid in compile time context" % token.text)
                 exit(1)
             
-            elif token.value in [Keyword.OP_IN, Keyword.OP_BIKESHEDDER]:
+            elif token.value in [Keyword.IN, Keyword.BIKESHEDDER]:
                 compiler_error(token.loc, "unexpected keyword `%s`" % token.text)
                 exit(1)
             

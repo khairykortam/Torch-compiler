@@ -15,7 +15,12 @@ const stdout 1 end
 const stderr 2 end
 
 // syscalls
+const SYS_read 0 end
+const SYS_write 0 end
+const SYS_open 2 end
 const SYS_close 3 end
+const SYS_openat 257 end
+
 
 inline proc @ptr ptr -- ptr in @64 cast(ptr) end
 inline proc @@ptr ptr -- ptr in @ptr @ptr end
@@ -65,6 +70,20 @@ end
 
 inline proc close int -- int in SYS_close syscall1 end
 
+//SYSCALL WRAPPERS  ############
+inline proc write int ptr int -- int in SYS_write syscall3 end
+inline proc read int ptr int -- int in SYS_read syscall3 end
+inline proc openat int int  ptr int -- int in SYS_openat syscall4 end
+inline proc close int ptr int -- int in SYS_close syscall3 end
+inline proc write int ptr int -- int in SYS_wr syscall3 end
+inline proc exit int in SYS_exit syscall1 drop end
+
+inline proc / int int -- int in divmod drop end
+inline proc % int int -- int in divmod swap drop end
+inline proc mod int int -- int in % end
+inline proc div int int -- int in / end
+// end WRAPPERS ################
+
 
 inline proc nth_argv int -- ptr in
 8 * argv +ptr @64 cast(ptr)
@@ -93,7 +112,7 @@ inline proc dec64 ptr in dup @64 1 - swap !64 end
 inline proc dec8 ptr in dup @8 1 - swap !8 end
 inline proc inc8 ptr in dup @8 1 - swap !8 end
 
-ptroc cstrlen ptr -- int in
+proc cstrlen ptr -- int in
 dup 
 while dup @8 0 != do 1 ptr+ end
 swap ptr-diff 
@@ -158,3 +177,230 @@ end
 drop
 end
 
+proc str-chop-by-delim
+int // delim
+ptr // dst
+ptr // src
+in
+memory delim sizeof(u64) end
+rot delim !64
+over over @Str.data swap !Str.data
+over 0 swap !Str.count
+while 
+dup @Str.count 0 > if
+dup @Str.data @8 delim @64 !=
+else false end
+do
+dup str-chop-one-left
+swap dup Str.count inc64 swap
+end
+dup @Str.count 0 > if
+dup str-chop-one-left
+end
+drop drop
+end
+
+proc str-starts-with
+int ptr // prefix
+int ptr // input
+--
+bool
+in
+memory prefix sizeof(Str) end
+memory input sizeof(Str) end
+input !Str
+prefix !Str
+
+prefix @Str.count
+input @Str.count
+<= if
+0 while 
+dup prefix @Str.count < if
+dup input @Str.data +ptr @8
+over prefix @str.data +ptr @8
+=
+else false end
+do 1 + end
+prefix @Str.count >=
+else false end
+end
+
+inline proc ?str-empty ptr -- bool in
+offsetof(Str.count) ptr+
+@64
+0 = 
+end
+
+proc streq
+int ptr int ptr
+--
+bool
+in
+memory a sizeof(Str) end
+a !Str
+
+a @Str.count b @Str.count = if 
+0 while 
+dup a @Str.count < if
+dup a @Str.data +ptr @8
+over b @Str.data +ptr @8
+=
+else false end
+do 1 + end
+a @Str.count >=
+else false end
+end
+
+// TODO: maintain ?proc-name convention
+inline proc isdigit int -- bool in
+dup 
+'0' >=
+swap 
+'9' < =
+land
+end
+
+inline proc isalpha int -- bool in
+dup 
+dup
+'a' >=
+swap
+'z' <=
+land 
+swap
+dup 
+'A' >=
+swap
+'Z' <=
+land 
+lor
+end
+
+inline proc isalnum int -- bool in
+dup 
+isdigit
+swap
+isalpha
+lor
+end
+
+proc try-parse-int
+int ptr
+--
+int bool
+in
+memory input sizeof(Str) end
+input !Str
+
+0 while
+input @Str.count 0 > if
+input @Str.data @8 isdigit
+else false end
+do
+10 * input @str.data @8 '0' - +
+input str-chop-one-left
+end
+
+input @Str.count 0 <=
+end
+
+const PUTU_BUFFER_CAP 32 end
+
+proc fputu
+int // number
+int // fd
+in
+memory buffer PUTU_BUFFER_CAP end
+memory fd sizeof(u64) end
+fd !64
+
+dup 0 = if
+"0" fd @64 fputs
+else
+buffer PUTU_BUFFER_CAP ptr+
+while over 0 != do
+1 ptr- dup rot
+10 divmod
+rot swap '0' + swap !8 swap
+end
+
+dup 
+buffer PUTU_BUFFER_CAP ptr+ swap ptr-diff swap fd @64 fputs
+end
+drop
+end
+
+
+
+inline proc putu int in stdout fputu end
+inline proc eputu int in stderr fputu end
+
+// memory functions
+
+proc memcpy
+int // size
+ptr // src
+ptr // dst
+--
+ptr // dst
+memory src sizeof(ptr) end
+memory dst sizeof(ptr) end
+memory result sizeof(ptr) end
+dst !64
+src !64
+dst @ptr swap // result
+while dup 0 > do
+src @ptr @8
+dst @ptr !8
+src inc64
+dst inc64
+1 - 
+end drop
+end
+
+
+proc memset 
+int // sz 
+int // byte
+ptr // data
+--
+ptr // data
+in
+memory data sizeof(ptr) end
+data !64
+data @ptr swap
+while dup 0 > do
+byte @64 data @ptr !8
+data inc64
+1 -
+end 
+drop
+end
+
+const TMP_CAP 8 1024 * 1024 * end
+memory tmp-start TMP_CAP end
+memory tmp-size sizeof(u64) end
+
+inline proc tmp-clean in 0 tmp-size !64 end
+inline proc tmp-end -- ptr in tmp-start tmp-size @64 ptr+ end
+inline proc tmp-rewind ptr in tmp-start ptr-diff tmp-size !int end
+
+proc tmp-alloc
+int
+--
+ptr // result
+in
+dup tmp-size @64 + TMP_CAP > if
+here eputs ": temp mem buffer capacity exceeded, need to clean buffer"
+1 exit
+end
+
+dup 0 tmp-end memset
+tmp-size @64 rot + tmp-size !64
+end
+
+
+
+
+
+proc append-item

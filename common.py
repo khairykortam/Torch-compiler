@@ -262,4 +262,6 @@ class ParseContext:
     iota: int = 0
 
 
-DataStack = List[Tuple[DataType, Loc]]
+# DataStack = List[Tuple[DataType, Loc]]
+# depricated type checking
+
