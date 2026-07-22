@@ -341,7 +341,7 @@ def parse_program_from_tokens(ctx, tokens, include_paths=None, included=0):
                 compiler_error(token.loc, "unexpected keyword `%s`" % token.text)
                 exit(1)
             
-            elif token.value == Keyword.OP_HERE:
+            elif token.value == Keyword.HERE:
                 value = "%s:%d:%d" % token.loc
                 ctx.ops.append(Op(typ=OpType.PUSH_STR, operand=value, token=token))
     

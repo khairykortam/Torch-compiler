@@ -19,7 +19,16 @@ const SYS_read 0 end
 const SYS_write 0 end
 const SYS_open 2 end
 const SYS_close 3 end
+const SYS_stat 4 end
+const SYS_fstat 5 end
+const SYS_mmap 9 end
 const SYS_openat 257 end
+const SYS_clock_nanosleep 230 end
+const SYS_clock_gettime 228 end
+const SYS_getpid 39 end
+const SYS_fork 57 end
+const SYS_exit 60 end 
+const SYS_wait4 61 end
 
 
 inline proc @ptr ptr -- ptr in @64 cast(ptr) end
@@ -34,6 +43,18 @@ inline proc !int int ptr in !64 end
 const O_WRONLY 1 end
 const O_TRUNC 512 end
 const O_CREAT 64 end
+const O_RDONLY 0 end
+
+const CLOCK_MONOTONIC 1 end
+const TIMER_ABSTIME 1 end
+
+const PROT_READ 1 end
+const PROT_WRITE 2 end
+const MAP_PRIVATE 2 end
+
+const timespec.tv_sec sizeof(int) offset end
+const timespec.tv_nsec sizeof(int) offset end
+const sizeof(timespec) reset end
 
 
 inline proc ptr+ ptr int -- ptr in
@@ -68,15 +89,50 @@ swap cast(int)
 -
 end
 
-inline proc close int -- int in SYS_close syscall1 end
+
+const sizeof(stat) 144 end
+inline proc stat.st_dev     ptr -- ptr in 0   ptr+ end
+inline proc stat.st_ino     ptr -- ptr in 8   ptr+ end
+inline proc stat.st_mode    ptr -- ptr in 24  ptr+ end
+inline proc stat.st_nlink   ptr -- ptr in 16  ptr+ end
+inline proc stat.st_uid     ptr -- ptr in 28  ptr+ end
+inline proc stat.st_gid     ptr -- ptr in 32  ptr+ end
+inline proc stat.st_rdev    ptr -- ptr in 40  ptr+ end
+inline proc stat.st_size    ptr -- ptr in 48  ptr+ end
+inline proc @stat.st_size   ptr -- int in stat.st_size @64 end
+inline proc stat.st_blksize ptr -- ptr in 56  ptr+ end
+inline proc stat.st_blocks  ptr -- ptr in 64  ptr+ end
+inline proc stat.st_atim    ptr -- ptr in 72  ptr+ end
+inline proc stat.st_mtim    ptr -- ptr in 88  ptr+ end
+inline proc stat.st_ctim    ptr -- ptr in 104 ptr+ end
+const sizeof(stat.st_dev) sizeof(u64) end
+const sizeof(stat.st_ino) sizeof(u64) end
+const sizeof(stat.st_mode) sizeof(u32) end
+const sizeof(stat.st_nlink) sizeof(u64) end
+const sizeof(stat.st_uid) sizeof(u32) end
+const sizeof(stat.st_gid) sizeof(u32) end
+const sizeof(stat.st_rdev) sizeof(u64) end
+const sizeof(stat.st_size) sizeof(u64) end
+const sizeof(stat.st_blksize) sizeof(u64) end
+const sizeof(stat.st_blocks) sizeof(u64) end
+const sizeof(stat.st_atim) sizeof(timespec) end
+const sizeof(stat.st_mtim) sizeof(timespec) end
+const sizeof(stat.st_ctim) sizeof(timespec) end
 
 //SYSCALL WRAPPERS  ############
 inline proc write int ptr int -- int in SYS_write syscall3 end
 inline proc read int ptr int -- int in SYS_read syscall3 end
 inline proc openat int int  ptr int -- int in SYS_openat syscall4 end
 inline proc close int ptr int -- int in SYS_close syscall3 end
-inline proc write int ptr int -- int in SYS_wr syscall3 end
+inline proc fstat ptr int -- int in SYS_fstat syscall2 end
+inline proc stat ptr ptr -- int in SYS_stat syscall2 end
 inline proc exit int in SYS_exit syscall1 drop end
+inline proc mmap int int int int int ptr -- int in SYS_mmap syscall6 end
+inline proc clock_nanosleep ptr ptr int int -- int in SYS_clock_nanosleep syscall4 end
+inline proc clock_gettime ptr int -- int in SYS_clock_gettime syscall2 end
+inline proc fork -- int in SYS_fork syscall0 end
+inline proc getpid -- int in SYS_getpid syscall0 end
+inline proc wait4 ptr int ptr int -- int in SYS_wait4 syscall4 end
 
 inline proc / int int -- int in divmod drop end
 inline proc % int int -- int in divmod swap drop end
@@ -146,7 +202,7 @@ const sizeof(Str) reset end
 inline proc Str.count ptr -- ptr in offsetof(Str.count) ptr+ end
 inline proc Str.data ptr -- ptr in offsetof(Str.data) ptr+ end
 inline proc @Str.count ptr -- int in Str.count @64 end
-inline proc @str.data ptr -- ptr in Str.data @64 cast(ptr) end
+inline proc @Str.data ptr -- ptr in Str.data @64 cast(ptr) end
 inline proc !Str.count int ptr in Str.count !64 end
 inline proc !Str.data  ptr ptr in Str.data !64 end
 
@@ -155,13 +211,13 @@ dup @Str.count
 swap @Str.data
 end
 
-inline proc !Str int ptr ptr inc64
+inline proc !Str int ptr ptr in
 dup rot swap
 !Str.data
 !Str.count
 end
 
-inline proc str-chop-one-left ptr in
+inline proc str-chop-one-left ptr  in
 dup Str.count dec64
 Str.data inc64
 end
@@ -217,7 +273,7 @@ input @Str.count
 0 while 
 dup prefix @Str.count < if
 dup input @Str.data +ptr @8
-over prefix @str.data +ptr @8
+over prefix @Str.data +ptr @8
 =
 else false end
 do 1 + end
@@ -238,6 +294,8 @@ bool
 in
 memory a sizeof(Str) end
 a !Str
+memory b sizeof(Str) end
+b !Str 
 
 a @Str.count b @Str.count = if 
 0 while 
@@ -297,7 +355,7 @@ input @Str.count 0 > if
 input @Str.data @8 isdigit
 else false end
 do
-10 * input @str.data @8 '0' - +
+10 * input @Str.data @8 '0' - +
 input str-chop-one-left
 end
 
@@ -343,6 +401,7 @@ ptr // src
 ptr // dst
 --
 ptr // dst
+in
 memory src sizeof(ptr) end
 memory dst sizeof(ptr) end
 memory result sizeof(ptr) end
@@ -368,6 +427,8 @@ ptr // data
 in
 memory data sizeof(ptr) end
 data !64
+memory byte sizeof(u64) end
+byte !64
 data @ptr swap
 while dup 0 > do
 byte @64 data @ptr !8
@@ -394,7 +455,6 @@ dup tmp-size @64 + TMP_CAP > if
 here eputs ": temp mem buffer capacity exceeded, need to clean buffer"
 1 exit
 end
-
 dup 0 tmp-end memset
 tmp-size @64 rot + tmp-size !64
 end
@@ -404,3 +464,362 @@ end
 
 
 proc append-item
+int // sz 
+ptr // item
+int // array capacity
+ptr // array
+ptr // array cnt 
+--
+int // idx of append item
+bool // appended
+in
+memory count sizeof(ptr) end
+count !ptr
+memory array sizeof(ptr) end
+array !ptr
+
+count @ptr @int > if
+over count @ptr @int *
+array @ptr +ptr
+memcpy drop
+
+count @ptr @int 
+count @ptr inc64
+
+true
+else
+drop drop
+0 false
+end
+end
+
+proc tmp-utos
+int 
+--
+int ptr
+in
+memory buffer sizeof(ptr) end
+PUTU_BUFFER_CAP tmp-alloc buffer !ptr
+
+dup 0 = if
+drop
+buffer @ptr PUTU_BUFFER_CAP ptr+ 1 ptr-
+'0' over !64
+1 swap
+else
+buffer @ptr PUTU_BUFFER_CAP ptr+
+while over 0 > do
+1 ptr- dup rot
+10 divmod
+rot swap '0' + swap !8 swap
+end
+
+swap drop
+
+drop buffer @ptr PUTU_BUFFER_CAP ptr+ swap ptr-diff swap
+end
+end
+
+proc map-file
+ptr // file-path-cstr
+--
+int ptr
+in
+memory file-path-cstr sizeof(ptr) end
+file-path-cstr !64
+
+0 // mode
+O_RDONLY // flags
+file-path-cstr @ptr // pathname
+0 100 - 
+openat 
+
+dup 0 < if
+"ERR: could not open file " eputs file-path-cstr @ptr cstr-to-str eputs "\n" eputs
+1 exit
+end
+
+memory fd sizeof(u64) end
+fd !64
+
+
+memory statbuf sizeof(stat) end
+statbuf fd @64 fstat 0 < if
+"ERR: couldn't determine the size of file " eputs file-path-cstr @ptr cstr-to-str eputs 
+1 exit
+end
+
+memory content sizeof(Str) end
+statbuf @stat.st_size content !Str.count
+
+content @Str.count 0 > if
+0 // offset
+fd @64 // fd
+MAP_PRIVATE // flags
+PROT_READ // porth
+content @Str.count // length
+NULL // addr
+mmap 
+cast(ptr)
+content !Str.data
+
+content @Str.data cast(int) 0 < if
+"ERR: couldn't map memory file" eputs file-path-cstr @ptr cstr-to-str eputs "\n" eputs
+1 exit
+end
+
+content @Str
+else
+0 NULL
+end
+end
+
+proc ?file-exist ptr -- bool in
+memory statbuf sizeof(stat) end
+statbuf swap stat
+
+dup 0 = if
+drop true
+else dup 0 2 - = if*
+drop false
+else
+drop false
+here eputs ": ERR: failure in ?file-exist procedure\n" eputs
+1 exit
+end
+end
+
+proc ?shell-safe-char
+int 
+-- 
+bool
+in
+memory ch sizeof(int) end
+ch !int
+"@%+=:,./-_"
+while 
+over 0 > if
+dup @8 @int !=
+else false end
+do
+swap 1 - 
+swap 1 ptr+
+end
+drop 0 >
+ch @int isalnum
+lor 
+end
+
+proc ?shell-safe-str
+int ptr
+--
+bool
+in
+while over 0 > if
+dup @8 ?shell-safe-char
+else false end
+do
+swap 1 - 
+swap 1 ptr+
+end
+drop 0 = 
+end
+
+proc shell-escape
+int ptr
+--
+int ptr
+in
+memory result sizeof(ptr) end
+over over ?shell-safe-str lnot if
+tmp-end result !ptr
+"'" tmp-append drop
+while over 0 > do
+dup @8
+
+dup '\'' = if
+drop 
+"'\"'\"'" tmp-append drop
+else
+1 tmp-alloc !8
+end
+
+swap 1 - 
+swap 1 ptr+
+end drop drop
+"'" tmp-append drop
+
+tmp-end result @ptr ptr-diff
+result @ptr
+end
+end
+
+memory timeit-begin sizeof(timespec) end
+
+proc timeit/from-here in
+timit-begin CLOCK_MONOTONIC clock_gettime 0 < if
+"ERR: timit/start: couldn't get current time\n" eputs
+1 exit
+end
+end
+
+const 1e9 1000000000 end
+
+proc timit/to-here
+int ptr // mssg 
+bool // silent
+in
+memory timeit-end sizeof(timespec) end
+lnot if 
+timeit-end CLOCK_MONOTONIC clock_gettime 0 < if
+" ERR: timit/end: idk, fuck you\n" eputs
+ 1 exit
+ end
+ puts " took " puts
+
+ timeit-end timespec.tv_sec ptr+ @int
+ timeit-begin timespec.tv_sec ptr+ @int
+ -
+ 1 e9 * 
+ timeit-end timespec.tv_nsec ptr+ @int
+ timeit-begin timespec.tv_nsec ptr+ @int
+ -
+ +
+ dup 1e9 /   putu
+ "."         puts
+ dup 1e9 % 0 put0u
+ " secs\n"   puts
+ drop 
+ else
+ drop drop
+ end
+ end
+
+ proc dirname 
+ int ptr
+ --
+ int ptr
+ in
+ while
+ over over swap 
+ dup 0 > if
+ 1 - ptr+ @8 '/' !=
+ else 
+ drop drop false
+ end
+ do
+ swap 1 - swap
+ end
+
+ swap 
+ dup 0 > if
+ over over 1 - ptr+ @8 '/' = if
+ 1 - 
+ end
+ end
+ swap
+ end
+
+ proc str-rfind
+
+ int ptr
+ int
+ --
+ int
+ in
+ memory needle sizeof(Str) end
+ str !Str
+
+ 0
+ while dup str @Str.count < if
+ str @Str.count over - 1 - 
+ str @Str.data swap ptr+ 
+ @8 needle @int != 
+ else false end
+ do
+ 1 + 
+ end
+
+ dup str @Str.count < if
+ str @Str.count swap - 1 -
+ else
+ drop 0 1 -
+ end
+
+end
+
+proc putch
+int
+in
+memory buf sizeof(int) end
+buf !8
+1 buf puts
+end
+
+proc remove-exit
+int ptr
+--
+int ptr
+in
+memory path sizeof(Str) end
+path !Str 
+path @Str '/' str-rfind
+path @Str '.' str-rfind
+
+over over < if
+swap drop path @Str.data
+else 
+drop drop path @Str
+end
+end
+
+proc cmd-echoed
+ptr // arr of cstr for the commands we're running
+bool // echo commands
+in
+if
+"[CMD]" puts
+dup while dup @64 0 != do
+" " puts
+dup @64 cast(ptr) cstr-to-str shell-escape puts
+8 ptr+
+end
+drop
+"\n" puts
+end
+
+memory wstatus sizeof(u64) end
+
+fork
+
+dup 0 = if
+drop 
+dup @ptr
+swap execvp 
+else dup 0 > if*
+drop drop
+NULL
+0
+wstatus
+0 1 - 
+wait4 0 < if
+"[ERR] couldn't wait until the child process has finished\n" eputs
+1 exit
+end
+
+wstatus @int
+dup WIFEXITED if 
+dup WEXITSTATUS
+dup 0 > if
+dup exit
+end
+drop
+end
+drop
+
+else 
+drop drop
+"[ERR] couln't fork a child\n" eputs
+1 exit
+end
+end
