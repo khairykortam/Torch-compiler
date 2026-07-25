@@ -159,7 +159,16 @@ def parse_program_from_tokens(ctx, tokens, include_paths=None, included=0):
             if token.value == Keyword.OP_IF:
                 ctx.stack.append(len(ctx.ops))
                 ctx.ops.append(Op(typ=OpType.IF, token=token))
-            
+            elif token.value == Keyword.OP_IFSTAR:
+                if len(ctx.stack) == 0 :
+                    compiler_error(token.loc, "if* can only come after else")
+                    exit(1)
+                else_ip = ctx.stack[-1]
+                if ctx.ops[else_ip].typ != OpType.ELSE:
+                    compiler_error(ctx.ops[else_ip].token.loc, "if* can only come after else")
+                    exit(1)
+                ctx.stack.append(len(ctx.ops))
+                ctx.ops.append(Op(typ=OpType.IFSTAR, token=token))
             elif token.value == Keyword.OP_ELSE:
                 if len(ctx.stack) == 0:
                     compiler_error(token.loc, "`else` can only come after `if`")
@@ -170,51 +179,20 @@ def parse_program_from_tokens(ctx, tokens, include_paths=None, included=0):
                     ctx.ops[if_ip].operand = len(ctx.ops) + 1
                     ctx.stack.append(len(ctx.ops))
                     ctx.ops.append(Op(typ=OpType.ELSE, token=token))
+                elif ctx.ops[if_ip].typ == OpType.IFSTAR:
+                    else_before_ifstar_ip = (
+                        None if len(ctx.stack) == 0 else ctx.stack.pop()
+                    )
+                    ctx.ops[if_ip].operand = len(ctx.ops) + 1
+                    ctx.ops[else_before_ifstar_ip].operand = len(ctx.ops)
+
+                    ctx.stack.append(len(ctx.ops))
+                    ctx.ops.append(Op(typ=OpType.ELSE, token=token))
                 else:
                     compiler_error(token.loc, "`else` can only come after `if`")
                     exit(1)
             
-            elif token.value == Keyword.OP_END:
-                if len(ctx.stack) == 0:
-                    compiler_error(token.loc, "unmatched `end`")
-                    exit(1)
-                
-                block_ip = ctx.stack.pop()
-                
-                if ctx.ops[block_ip].typ == OpType.ELSE:
-                    ctx.ops[block_ip].operand = len(ctx.ops)
-                    ctx.ops.append(Op(typ=OpType.END, token=token, operand=len(ctx.ops) + 1))
-                
-                elif ctx.ops[block_ip].typ == OpType.DO:
-                    while_ip = ctx.ops[block_ip].operand
-                    if ctx.ops[while_ip].typ != OpType.WHILE:
-                        compiler_error(token.loc, "`end` can only close `do` blocks")
-                        exit(1)
-                    
-                    ctx.ops.append(Op(typ=OpType.END, token=token, operand=while_ip))
-                    ctx.ops[block_ip].operand = len(ctx.ops)
-                
-                elif ctx.ops[block_ip].typ == OpType.PREP_PROC:
-                    if ctx.current_proc is None:
-                        compiler_error(token.loc, "invalid proc state")
-                        exit(1)
-                    
-                    ctx.ops[block_ip].operand = ctx.current_proc.local_memory_capacity
-                    skip_proc_ip = ctx.stack.pop()
-                    
-                    if ctx.ops[skip_proc_ip].typ != OpType.SKIP_PROC:
-                        compiler_error(token.loc, "invalid proc state")
-                        exit(1)
-                    
-                    ctx.current_proc.body_size = len(ctx.ops) - ctx.current_proc.addr
-                    ctx.ops.append(Op(typ=OpType.RET, token=token, operand=ctx.current_proc.local_memory_capacity))
-                    ctx.ops[skip_proc_ip].operand = len(ctx.ops)
-                    ctx.current_proc = None
-                
-                elif ctx.ops[block_ip].typ == OpType.IF:
-                    ctx.ops[block_ip].operand = len(ctx.ops)
-                    ctx.ops.append(Op(typ=OpType.END, token=token, operand=len(ctx.ops) + 1))
-            
+
             elif token.value == Keyword.OP_WHILE:
                 ctx.stack.append(len(ctx.ops))
                 ctx.ops.append(Op(typ=OpType.WHILE, token=token))
@@ -223,14 +201,82 @@ def parse_program_from_tokens(ctx, tokens, include_paths=None, included=0):
                 if len(ctx.stack) == 0:
                     compiler_error(token.loc, "`do` not preceded by `while`")
                     exit(1)
-                
                 while_ip = ctx.stack.pop()
                 if ctx.ops[while_ip].typ != OpType.WHILE:
-                    compiler_error(token.loc, "`do` not preceded by `while`")
+                    compiler_error(token.loc, "do is not preceded by while")
                     exit(1)
-                
                 ctx.stack.append(len(ctx.ops))
                 ctx.ops.append(Op(typ=OpType.DO, token=token, operand=while_ip))
+
+            elif token.value == Keyword.END:
+                block_ip = ctx.stack.pop()
+
+                if ctx.ops[block_ip].typ == OpType.ELSE:
+                    ctx.ops[block_ip].operand = len(ctx.ops)
+                    ctx.ops.append(
+                        Op(typ=OpType.END, token=token, operand=len(ctx.ops) + 1)
+                    )
+                elif ctx.ops[block_ip].typ == OpType.DO:
+                    assert ctx.ops[block_ip].operand is not None
+                    while_ip = ctx.ops[block_ip].operand
+                    assert isinstance(while_ip, OpAddr)
+
+                    if ctx.ops[while_ip].typ != OpType.WHILE:
+                        compiler_error(
+                            ctx.ops[while_ip].token.loc,
+                            "`end` can only close `do` blocks that are preceded by `while`",
+                        )
+                        exit(1)
+
+                    ctx.ops.append(Op(typ=OpType.END, token=token, operand=while_ip))
+                    ctx.ops[block_ip].operand = len(ctx.ops)
+                elif ctx.ops[block_ip].typ == OpType.PREP_PROC:
+                    assert ctx.current_proc is not None
+                    ctx.ops[block_ip].operand = ctx.current_proc.local_memory_capacity
+                    block_ip = ctx.stack.pop()
+                    assert ctx.ops[block_ip].typ == OpType.SKIP_PROC
+                    ctx.current_proc.body_size = len(ctx.ops) - ctx.current_proc.addr
+                    ctx.ops.append(
+                        Op(
+                            typ=OpType.RET,
+                            token=token,
+                            operand=ctx.current_proc.local_memory_capacity,
+                        )
+                    )
+                    ctx.ops[block_ip].operand = len(ctx.ops)
+                    ctx.current_proc = None
+                elif ctx.ops[block_ip].typ == OpType.IFSTAR:
+                    else_before_ifstar_ip = (
+                        None if len(ctx.stack) == 0 else ctx.stack.pop()
+                    )
+                    assert (
+                        else_before_ifstar_ip is not None
+                        and ctx.ops[else_before_ifstar_ip].typ == OpType.ELSE
+                    ), (
+                        "At this point we should've already checked that `if*` comes after `else`. Otherwise this is a compiler bug."
+                    )
+
+                    ctx.ops[block_ip].operand = len(ctx.ops)
+                    ctx.ops[else_before_ifstar_ip].operand = len(ctx.ops)
+                    ctx.ops.append(
+                        Op(typ=OpType.END, token=token, operand=len(ctx.ops) + 1)
+                    )
+                elif ctx.ops[block_ip].typ == OpType.IF:
+                    ctx.ops[block_ip].operand = len(ctx.ops)
+                    ctx.ops.append(
+                        Op(typ=OpType.END, token=token, operand=len(ctx.ops) + 1)
+                    )
+                else:
+                    compiler_error(
+                        token.loc,
+                        "`end` can only close `if`, `if*`, `else`, `do`, or `proc` blocks",
+                    )
+                    compiler_note(
+                        ctx.ops[block_ip].token.loc,
+                        f"found `{ctx.ops[block_ip].token.text}` instead",
+                    )
+                    exit(1)
+
             
             elif token.value == Keyword.OP_CONST:
                 if len(rtokens) == 0:

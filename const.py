@@ -9,7 +9,7 @@ def eval_const_value(ctx, rtokens):
         token = rtokens.pop()
         
         if token.typ == TokenType.TOKEN_KEYWORD:
-            if token.value == Keyword.OP_END:
+            if token.value == Keyword.END:
                 break
             elif token.value == Keyword.OP_OFFSET:
                 if len(stack) < 1:

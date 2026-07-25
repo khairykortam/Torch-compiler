@@ -91,6 +91,7 @@ def generate_nasm_linux_x86_64(program, out_file_path):
                 pass
                 
             elif op.typ == OpType.ELSE:
+                
                 assert isinstance(op.operand, int), "Expected int operand"
                 out.write("    jmp addr_%d\n" % op.operand)
                 

@@ -22,7 +22,7 @@ class Keyword(Enum):
     OP_ELSE = iota()
     OP_WHILE = iota()
     OP_DO = iota()
-    OP_END = iota()
+    END = iota()
     OP_PROC = iota()
     OP_CONST = iota()
     OP_OFFSET = iota()
@@ -166,7 +166,7 @@ KEYWORD_BY_NAMES: Dict[str, Keyword] = {
     "include": Keyword.INCLUDE,
     "memory": Keyword.MEMORY,
     "proc": Keyword.OP_PROC,
-    "end": Keyword.OP_END,
+    "end": Keyword.END,
     "const": Keyword.OP_CONST,
     "offset": Keyword.OP_OFFSET,
     "reset": Keyword.OP_RESET,
@@ -260,6 +260,7 @@ class ParseContext:
     consts: dict = field(default_factory=dict)
     current_proc = None
     iota: int = 0
+    chain_link: dict = field(default_factory=dict)
 
 
 # DataStack = List[Tuple[DataType, Loc]]

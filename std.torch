@@ -388,9 +388,41 @@ end
 drop
 end
 
+proc fput0u
+int 
+int 
+int 
+in
+memory buffer PUTU_BUFFER_CAP end
+memory fd sizeof(int) end
+fd !int
+memory padding sizeof(int) end
+padding !int
+memory number sizeof(int) end
+number !int
+buffer PUTU_BUFFER_CAP ptr+
+while 
+padding @int 0 >
+number @int 0 >
+lor
+do
+1 ptr-
+
+number @int
+10 divmod 
+'0' +
+rot over over !8
+rot number !int
+swap drop
+
+padding dec64
+end
+dup buffer PUTU_BUFFER_CAP ptr+ swap ptr-diff swap fd @64 fputs
+end
 
 
 inline proc putu int in stdout fputu end
+inline proc put0u int int in stdout fput0u end
 inline proc eputu int in stderr fputu end
 
 // memory functions
@@ -459,7 +491,11 @@ dup 0 tmp-end memset
 tmp-size @64 rot + tmp-size !64
 end
 
-
+inline proc tmp-str-to-cstr int ptr -- ptr in over 1 + tmp-alloc memcpy end
+inline proc tmp-append int ptr -- ptr in over tmp-alloc memcpy end
+inline proc tmp-append-ptr ptr in
+sizeof(ptr) tmp-alloc !ptr
+end
 
 
 
@@ -657,7 +693,7 @@ end
 memory timeit-begin sizeof(timespec) end
 
 proc timeit/from-here in
-timit-begin CLOCK_MONOTONIC clock_gettime 0 < if
+timeit-begin CLOCK_MONOTONIC clock_gettime 0 < if
 "ERR: timit/start: couldn't get current time\n" eputs
 1 exit
 end
@@ -680,7 +716,7 @@ timeit-end CLOCK_MONOTONIC clock_gettime 0 < if
  timeit-end timespec.tv_sec ptr+ @int
  timeit-begin timespec.tv_sec ptr+ @int
  -
- 1 e9 * 
+ 1 1e9 * 
  timeit-end timespec.tv_nsec ptr+ @int
  timeit-begin timespec.tv_nsec ptr+ @int
  -
@@ -727,7 +763,10 @@ timeit-end CLOCK_MONOTONIC clock_gettime 0 < if
  --
  int
  in
- memory needle sizeof(Str) end
+ memory needle sizeof(int) end
+needle !int
+
+memory str sizeof(Str) end
  str !Str
 
  0
