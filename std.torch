@@ -27,6 +27,7 @@ const SYS_clock_nanosleep 230 end
 const SYS_clock_gettime 228 end
 const SYS_getpid 39 end
 const SYS_fork 57 end
+const SYS_execve 59 end
 const SYS_exit 60 end 
 const SYS_wait4 61 end
 
@@ -132,6 +133,7 @@ inline proc clock_nanosleep ptr ptr int int -- int in SYS_clock_nanosleep syscal
 inline proc clock_gettime ptr int -- int in SYS_clock_gettime syscall2 end
 inline proc fork -- int in SYS_fork syscall0 end
 inline proc getpid -- int in SYS_getpid syscall0 end
+inline proc execve ptr ptr ptr -- int in SYS_execve syscall3 end
 inline proc wait4 ptr int ptr int -- int in SYS_wait4 syscall4 end
 
 inline proc / int int -- int in divmod drop end
@@ -194,6 +196,19 @@ inline proc fputs int ptr int in write drop end
 inline proc puts int ptr in stdout fputs end
 inline proc eputs int ptr in stderr fputs end
 
+inline proc WIFEXITED int -- bool in
+// (x&0x7f == 0)
+127 
+and 
+0 =
+end
+
+inline proc WEXITSTATUS int -- int in
+// (x&0xff00 >> 8)
+65280
+and 
+8 shr
+end
 
 const offsetof(Str.count) sizeof(u64) offset end
 const offsetof(Str.data) sizeof(u64) offset end
@@ -470,6 +485,8 @@ end
 drop
 end
 
+
+
 const TMP_CAP 8 1024 * 1024 * end
 memory tmp-start TMP_CAP end
 memory tmp-size sizeof(u64) end
@@ -496,6 +513,81 @@ inline proc tmp-append int ptr -- ptr in over tmp-alloc memcpy end
 inline proc tmp-append-ptr ptr in
 sizeof(ptr) tmp-alloc !ptr
 end
+
+proc getenv
+int ptr
+--
+ptr
+in
+
+memory name sizeof(Str) end
+name !Str
+
+memory env-name sizeof(Str) end
+memory env-value sizeof(Str) end
+
+envp
+while
+dup @ptr NULL ptr!= if
+dup @ptr cstr-to-str env-value !Str
+'=' env-name env-value str-chop-by-delim
+env-name @Str name @Str streq lnot
+else false end
+do 8 ptr+ end
+
+NULL ptr!= if
+env-value @Str.data
+else
+NULL
+end
+end
+
+
+proc execvp 
+ptr
+ptr
+in
+memory argvp sizeof(ptr) end
+argvp !64
+
+memory file-path sizeof(ptr) end
+file-path !64
+
+envp 
+argvp @ptr
+file-path @ptr
+execve drop
+
+memory paths sizeof(Str) end
+memory path sizeof(Str) end
+
+"PATH" getenv
+
+dup NULL ptr= if
+"coun't define PATH\n" eputs
+1 exit
+else 
+dup cstr-to-str paths !Str
+while paths @Str.count 0 > do
+':' path paths str-chop-by-delim
+
+tmp-end
+path @Str            tmp-append drop
+"/"                  tmp-append drop
+file-path @ptr cstr-to-str tmp-append drop
+1                    tmp-alloc drop
+
+envp swap 
+argvp @ptr 
+swap
+execve drop
+end
+end
+
+here eputs ":ERR: coudn't find executable"
+1 exit
+end
+
 
 
 
@@ -701,7 +793,7 @@ end
 
 const 1e9 1000000000 end
 
-proc timit/to-here
+proc timeit/to-here
 int ptr // mssg 
 bool // silent
 in
