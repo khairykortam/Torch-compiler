@@ -16,7 +16,7 @@ const stderr 2 end
 
 // syscalls
 const SYS_read 0 end
-const SYS_write 0 end
+const SYS_write 1 end
 const SYS_open 2 end
 const SYS_close 3 end
 const SYS_stat 4 end
@@ -41,6 +41,7 @@ inline proc !bool bool ptr in !64 end
 inline proc !ptr ptr ptr in !64 end
 inline proc !int int ptr in !64 end
 
+const AT_FDCWD 0 100 - end 
 const O_WRONLY 1 end
 const O_TRUNC 512 end
 const O_CREAT 64 end
@@ -124,7 +125,7 @@ const sizeof(stat.st_ctim) sizeof(timespec) end
 inline proc write int ptr int -- int in SYS_write syscall3 end
 inline proc read int ptr int -- int in SYS_read syscall3 end
 inline proc openat int int  ptr int -- int in SYS_openat syscall4 end
-inline proc close int ptr int -- int in SYS_close syscall3 end
+inline proc close int -- int in SYS_close syscall1 end
 inline proc fstat ptr int -- int in SYS_fstat syscall2 end
 inline proc stat ptr ptr -- int in SYS_stat syscall2 end
 inline proc exit int in SYS_exit syscall1 drop end
@@ -177,7 +178,7 @@ swap ptr-diff
 end
 
 proc cstreq ptr ptr -- bool in 
-while over @8 != over @8 0 != land if
+while over @8 0 != over @8 0 != land if
 over @8 over @8 = 
 else 
 false
@@ -329,7 +330,7 @@ inline proc isdigit int -- bool in
 dup 
 '0' >=
 swap 
-'9' < =
+'9' <=
 land
 end
 
@@ -553,6 +554,9 @@ argvp !64
 memory file-path sizeof(ptr) end
 file-path !64
 
+file-path @ptr
+argvp @ptr
+
 envp 
 argvp @ptr
 file-path @ptr
@@ -577,13 +581,12 @@ path @Str            tmp-append drop
 file-path @ptr cstr-to-str tmp-append drop
 1                    tmp-alloc drop
 
-envp swap 
-argvp @ptr 
-swap
+envp swap
+argvp @ptr swap
 execve drop
+end 
 end
-end
-
+drop
 here eputs ":ERR: coudn't find executable"
 1 exit
 end
@@ -727,7 +730,7 @@ ch !int
 "@%+=:,./-_"
 while 
 over 0 > if
-dup @8 @int !=
+dup @8 ch @int !=
 else false end
 do
 swap 1 - 

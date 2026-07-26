@@ -1,76 +1,65 @@
 BITS 64
 segment .text
-global _start
-
-dump:
-    push rbp
-    mov rbp, rsp
-    sub rsp, 64
-    mov qword [rbp-56], rdi
-    mov qword [rbp-8], 1
-    mov eax, 32
-    sub rax, qword [rbp-8]
-    mov byte [rbp-48 + rax], 10
+print:
+    mov     r9, -3689348814741910323
+    sub     rsp, 40
+    mov     BYTE [rsp+31], 10
+    lea     rcx, [rsp+30]
 .L2:
-    mov rcx, qword [rbp-56]
-    mov rax, rcx
-    mov rdx, -3689348814741910323
-    mul rdx
-    shr rdx, 3
-    mov rax, rdx
-    shl rax, 2
-    add rax, rdx
-    add rax, rax
-    sub rcx, rax
-    mov rdx, rcx
-    mov eax, edx
-    lea rdx, [rax + 48]
-    mov eax, 31
-    sub rax, qword [rbp-8]
-    mov byte [rbp-48 + rax], dl
-    add qword [rbp-8], 1
-    mov rax, qword [rbp-56]
-    mov rdx, -3689348814741910323
-    mul rdx
-    mov rax, rdx
-    shr rax, 3
-    mov qword [rbp-56], rax
-    cmp qword [rbp-56], 0
-    jne .L2
-    mov eax, 32
-    sub rax, qword [rbp-8]
-    lea rdx, [rbp-48]
-    lea rcx, [rdx + rax]
-    mov rax, qword [rbp-8]
-    mov rdx, rax
-    mov rsi, rcx
-    mov rdi, 1
-    mov rax, 1
+    mov     rax, rdi
+    lea     r8, [rsp+32]
+    mul     r9
+    mov     rax, rdi
+    sub     r8, rcx
+    shr     rdx, 3
+    lea     rsi, [rdx+rdx*4]
+    add     rsi, rsi
+    sub     rax, rsi
+    add     eax, 48
+    mov     BYTE [rcx], al
+    mov     rax, rdi
+    mov     rdi, rdx
+    mov     rdx, rcx
+    sub     rcx, 1
+    cmp     rax, 9
+    ja      .L2
+    lea     rax, [rsp+32]
+    mov     edi, 1
+    sub     rdx, rax
+    xor     eax, eax
+    lea     rsi, [rsp+32+rdx]
+    mov     rdx, r8
+    mov     rax, 1
     syscall
-    leave
+    add     rsp, 40
     ret
-
+global _start
 _start:
+    mov [args_ptr], rsp
+    mov rax, ret_stack_end
+    mov [ret_stack_rsp], rax
 addr_0:
-    push 10
 addr_1:
-    push 10
+    mov rax, 1
+    push rax
 addr_2:
-    ;; -- not equal --
-    mov rcx, 0
-    mov rdx, 1
+    mov rax, 2
+    push rax
+addr_3:
     pop rax
     pop rbx
-    cmp rbx, rax
-    cmovne rcx, rdx
-    push rcx
-addr_3:
-    pop rdi
-    call dump
+    add rax, rbx
+    push rax
 addr_4:
+    pop rax
+addr_5:
     mov rax, 60
     mov rdi, 0
     syscall
 segment .data
 segment .bss
-mem: resb 640000
+args_ptr: resq 1
+ret_stack_rsp: resq 1
+ret_stack: resb 65536
+ret_stack_end:
+mem: resb 0
