@@ -33,6 +33,7 @@ const SYS_close 3 end
 const SYS_stat 4 end
 const SYS_fstat 5 end
 const SYS_mmap 9 end
+const SYS_ioctl 16 end
 const SYS_getpid 39 end
 const SYS_fork 57 end
 const SYS_execve 59 end
@@ -46,6 +47,7 @@ const AT_FDCWD 0 100 - end
 
 const O_RDONLY 0 end
 const O_WRONLY 1 end
+const MAP_SHARED 1 end
 const O_RDWR 2 end
 const O_CREAT 64 end
 const O_TRUNC 512 end
@@ -127,6 +129,7 @@ const sizeof(stat.st_ctim) sizeof(timespec) end
 inline proc write int ptr int -- int in SYS_write syscall3 end
 inline proc read int ptr int -- int in SYS_read syscall3 end
 inline proc openat int int ptr int -- int in SYS_openat syscall4 end
+inline proc ioctl ptr int int -- int in SYS_ioctl syscall3 end
 inline proc fstat ptr int -- int in SYS_fstat syscall2 end
 inline proc stat ptr ptr -- int in SYS_stat syscall2 end
 inline proc close int -- int in SYS_close syscall1 end

@@ -1,6 +1,6 @@
 include "std.torch"
 
-/// BEGIN Loc //////////////////////////////
+/// BEGIN Loc  
 /// Loc is a location within the source code: file path, row, col
 const Loc.file-path sizeof(Str) offset end
 const Loc.row sizeof(u64) offset end
@@ -19,9 +19,9 @@ proc fputloc ptr int in
 end
 inline proc putloc ptr in stdout fputloc end
 inline proc eputloc ptr in stderr fputloc end
-/// END Loc //////////////////////////////
+/// END Loc  
 
-/// BEGIN Token //////////////////////////////
+/// BEGIN Token  
 /// Token is a group of characters within the source code that is
 /// recognized as certain class: int, word, string, etc.
 const TOKEN_INT     1 offset end
@@ -124,9 +124,9 @@ const Token.value
    offset
 end
 const sizeof(Token) reset end
-/// END Token //////////////////////////////
+/// END Token  
 
-/// BEGIN Strbuf //////////////////////////////
+/// BEGIN Strbuf  
 /// The buffer that holds the date of the string literals of
 /// the compiled program. (see Strlit)
 const STRBUF_CAP 32 1024 * end
@@ -172,9 +172,9 @@ in
   strbuf-end start @ptr ptr-diff
   start @ptr
 end
-/// END Strbuf //////////////////////////////
+/// END Strbuf  
 
-/// BEGIN Lexer //////////////////////////////
+/// BEGIN Lexer  
 /// Lexer is an entity that turns a string into a sequence of Tokens
 const Lexer.content    sizeof(Str) offset end
 const Lexer.line       sizeof(Str) offset end
@@ -473,9 +473,9 @@ proc lex-file ptr in
     drop // token.type
   end
 end
-/// END Lexer //////////////////////////////
+/// END Lexer  
 
-/// BEGIN Intrinsics //////////////////////////////
+/// BEGIN Intrinsics  
 /// Intrinsics are built-in function of the language with the hardcoded implementation.
 const INTRINSIC_PLUS      1 offset end
 const INTRINSIC_MINUS     1 offset end
@@ -639,9 +639,9 @@ in
   end
   swap
 end
-/// END Intrinsics //////////////////////////////
+/// END Intrinsics  
 
-/// BEGIN DataType //////////////////////////////
+/// BEGIN DataType  
 const DATATYPE_INT  1 offset end
 const DATATYPE_PTR  1 offset end
 const DATATYPE_BOOL 1 offset end
@@ -751,9 +751,9 @@ in
     69 exit
   end
 end
-/// END DataType //////////////////////////////
+/// END DataType  
 
-/// BEGIN Op //////////////////////////////
+/// BEGIN Op  
 /// "Op" is a single operation within the Porth's Intermediate Representation (IR):
 /// https://en.wikipedia.org/wiki/Intermediate_representation
 assert "Exhaustive push IR instructions definition for data types" COUNT_DATATYPES 3 = end
@@ -865,7 +865,7 @@ proc dump-ops in
 end
 /// END Op ////////////////////////////
 
-/// BEGIN Strlit //////////////////////////////
+/// BEGIN Strlit  
 /// Array of string literals of the compiled program.
 /// The operand of OP_PUSH_STR and OP_PUSH_CSTR is the
 /// index within this array
@@ -889,9 +889,9 @@ in
     1 exit
   end
 end
-/// END Strlit //////////////////////////////
+/// END Strlit  
 
-/// BEGIN Const //////////////////////////////
+/// BEGIN Const  
 /// Array of the constants of the compiled program
 const Const.name  sizeof(Str) offset end
 const Const.loc   sizeof(Loc) offset end
@@ -936,9 +936,9 @@ in
   end
   drop
 end
-/// END Const //////////////////////////////
+/// END Const  
 
-/// BEGIN TypeStack //////////////////////////////
+/// BEGIN TypeStack  
 const TypeFrame.type sizeof(int) offset end
 const TypeFrame.loc  sizeof(Loc) offset end
 const TypeFrame.prev sizeof(ptr) offset end
@@ -1053,9 +1053,9 @@ in
   outs @ptr
 end
 
-/// END TypeStack //////////////////////////////
+/// END TypeStack  
 
-/// BEGIN Proc //////////////////////////////
+/// BEGIN Proc  
 /// Array of procedures of the compiled program
 const Proc.name sizeof(Str)       offset end
 const Proc.addr sizeof(u64)       offset end
@@ -1127,9 +1127,9 @@ in
   end
   drop
 end
-/// END Proc //////////////////////////////
+/// END Proc  
 
-/// BEGIN Memory //////////////////////////////
+/// BEGIN Memory  
 const Memory.name sizeof(Str) offset end
 const Memory.offset sizeof(u64) offset end
 const Memory.loc sizeof(Loc) offset end
@@ -1217,7 +1217,7 @@ in
   end
   drop
 end
-/// END Memory //////////////////////////////
+/// END Memory  
 
 memory silent sizeof(bool) end
 
@@ -1226,7 +1226,7 @@ inline proc located-here ptr in eputloc ": NOTE: located here\n" eputs end
 // TODOO: an option to detect stack overflow at runtime
 const X86_64_RET_STACK_CAP 64 1024 * end
 
-/// BEGIN Code Generator //////////////////////////////
+/// BEGIN Code Generator  
 proc fputdecstr
   int ptr
   int
@@ -1777,9 +1777,9 @@ in
 
   out-fd @64 close drop
 end
-/// END Code Generator //////////////////////////////
+/// END Code Generator  
 
-/// BEGIN File Path Buffer //////////////////////////////
+/// BEGIN File Path Buffer  
 // This is a memory region where we store file paths for compile-file-into-ops operation.
 // This buffer is created to ensure that the file path string live long enough for
 // compile-file-into-ops to process the files properly.
@@ -1805,9 +1805,9 @@ in
 end
 
 inline proc fpb-append int ptr -- ptr in over fpb-alloc memcpy end
-/// END File Path Buffer //////////////////////////////
+/// END File Path Buffer  
 
-/// BEGIN Compiler //////////////////////////////
+/// BEGIN Compiler  
 const PARSE_BLOCK_STACK_CAP 1024 end
 memory parse-block-stack-count sizeof(u64) end
 memory parse-block-stack sizeof(u64) PARSE_BLOCK_STACK_CAP * end
@@ -2825,7 +2825,7 @@ in
 
   // TODO: compile-file-into-ops does not clean up resources after itself
 end
-/// END Compiler //////////////////////////////
+/// END Compiler  
 
 proc type-check-frames
   int // args count
