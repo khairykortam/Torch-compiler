@@ -110,6 +110,11 @@ def lex_lines(file_path, lines):
                 col_end = find_col(line, col, lambda x: x.isspace())
                 text_of_token = line[col:col_end]
 
+                if text_of_token.endswith(";"):
+                    text_of_token = text_of_token[:-1]
+                if text_of_token == "":
+                    col = find_col(line, col_end, lambda x: not x.isspace())
+                    continue
                 try:
                     yield Token(TokenType.TOKEN_INT, text_of_token, loc, int(text_of_token))
                 except ValueError:

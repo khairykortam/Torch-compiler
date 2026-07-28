@@ -1,0 +1,25 @@
+include "std.torch"
+
+proc testing 
+int 
+int
+in
+< if "YES\n" else "NO\n" end puts
+end
+
+1 2 testing 
+2 1 testing 
+
+proc fib in
+0 1 while over 100000 < do
+over 2 mod 0 = if
+over print
+end
+swap over +
+end
+drop drop
+end
+
+"##############\n" puts
+
+fib

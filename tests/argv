@@ -1,0 +1,10 @@
+include "./std.torch"
+
+1 while dup argc < do
+dup nth_argv cstrlen
+over nth_argv 
+puts
+"\n" puts
+
+1 + 
+end drop

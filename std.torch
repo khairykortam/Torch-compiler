@@ -175,6 +175,33 @@ inline proc dec64 ptr in dup @64 1 - swap !64 end
 inline proc inc8 ptr in dup @8 1 + swap !8 end
 inline proc dec8 ptr in dup @8 1 - swap !8 end
 
+proc swap64 ptr ptr in
+memory a sizeof(u64) end
+memory b sizeof(u64) end
+dup @64 b !64
+over @64 a !64
+a @64 swap !64
+b @64 swap !64
+end
+
+memory rand-state sizeof(u64) end
+inline proc srand int in 
+rand-state !64 
+end
+
+const Rand_seed1 6364136223846793005 end
+const rand_seed2 1442695040888963407 end
+
+inline proc rand -- int in
+rand-state @64
+Rand_seed1 *
+rand_seed2 +
+dup
+rand-state !64
+end
+
+
+
 proc cstrlen ptr -- int in
   dup
   while dup @8 0 != do 1 ptr+ end
