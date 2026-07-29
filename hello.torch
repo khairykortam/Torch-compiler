@@ -1,0 +1,2 @@
+include "std.torch"
+"Hello, World\n" puts
