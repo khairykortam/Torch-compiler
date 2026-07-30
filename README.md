@@ -35,18 +35,18 @@ and run the exectuable
 ```
 ./torch
 ```
-#Testing
+# Testing
 - Test cases are located in `./tests/` folder. 
 
 - The `./showcase_programs/` contains, well... programs to showcase the language? 
-- Some solution for CSES problemset[link](https://cses.fi/problemset/) are in `\CSES\`
+- Some solution for CSES problemset ([link](https://cses.fi/problemset/)) are in `./CSES/` 
 # Usage
-- if you want to use the compiler standone, you only need `./porth `executable and the standard library `./std.torch`
-- By default, the compiler searches files to include in `./` and `./std/`, you can add more search paths to include using the `-I` flag, : `./porth -I "path" com ....`.
-Then Run `./porth` for more info on how to use the compiler.
+- if you want to use the compiler standone, you only need `./torch `executable and the standard library `./std.torch`
+- By default, the compiler searches files to include in `./` and `./std/`, you can add more search paths to include using the `-I` flag, : `./torch -I "path" com ....`.
+- Run `./torch` for more info on how to use the compiler.
  
 
-- An alternative approach is to use the main.py to compile the program. This is more safe for testing and adding new features than editting the original self-hosted torch.torch file.
+- An alternative approach is to use the main.py to compile the program. This is more safe for testing and adding new features than editting the original self-hosted `torch.torch` file.
 
 # project structure
  + `common.py` -> contains constants and type defintions for the compiler
@@ -66,7 +66,66 @@ Then Run `./porth` for more info on how to use the compiler.
 
 # Language Handbook
 
+## literals
+### Numbers:
+- The language doesn't support floating point numbers nor negative numbers, but it support 64 unsigned integers. 
+```
+34 35 +
+```
+pushes 69 on the stack.
+- However, you can still process negative numbers by doing the following:
+```
+10 0 - 
+```
+which pushes -10 on the stack
+### String
+- a string is anything enclosed between two quotes(""). However,strings don't allow Unicode, and only allows ASCII characters. Attempting to process Non-ASCII characters will result in undefined behavior.
+#### String escape
+- `\n`-> newline
+- `\\` -> backslash
+- `\"` -> double quote
+- `\'` -> single quote
 
+Strings are proccessed as follows:
+- when a string is encountered, it's size in bytes is pushed onto the stack
+- the bytes of the string are copied in a string specific buffer.
+- the pointer to the beginning of that string in that buffer is pushed onto the stack.
+- Thus, a string pushes two values on the stack: it's size, and it's pointer.
+- the `puts` function from the std lib expects two values: the size of buffer, and the pointer to that buffer.
+### Characters
+- characters are single byte ASCII characters enclosed between two single quotes('').
+- It pushes it's value on the stack as an integer.
+### C-Strings
+- it's a string specifically designed to interact with C code or anything that expect something of that format(e.g syscalls)
+- it's a normal string with two differences: it doesn't push it's size on the stack, and it ends with a NULL character.
+
+## Built-in operations
+### Types
+- `int` -> 64-bit integer
+- `bool` -> boolean
+- `ptr`-> pointer
+- `addr` -> address of function
+- Note: the `--` indicates the return type
+### Arithmetic
+| Name | Signature | Description
+|----------|----------|----------| 
+| `+` | `a:int b:int -- a+b:int`  |  adds up two elements on the top of the stack
+| `-` |  `a:int b:int -- a-b:int` | subtracts the two-topmost elements on the stack |
+| `*` |  `a:int b:int -- a*b:int` | multiplies the two elements on the top of the stack|  
+| `divmod`|  `a:int b:int -- a/b:int a%b:int` | pushes the result of division and modulus operation of the two arguments on the stack
+| `/` | `a:int b:int -- a/b:int`| pushes the resultant of dividing the two elements on the stack|
+| `%` | `a:int b:int -- a%b:int`| pushes the resultant of performing modulus operation of the two elements on the stack(though using bitwise is better)(since `a%b == a&(b-1)`)|
+|`max`| `a:int b:int -- max(a,b):int`| returns the maximum of two numbers
+### bitwise
+| Name | Signature | Description
+|----------|----------|----------|
+| `shr` | `a:int b:int -- a>>b:int`  |  right-bit shift
+| `shl` | `a:int b:int -- a<<b:int`  |  left-bit shift
+| `or` | `a:int b:int -- a OR b:int`  |  bitwise `OR`
+| `and` | `a:int b:int -- a AND b:int`  |  bitwise `AND`
+| `not` | `a:int -- ~a:int`  |  bitwise `NOT`
+### comparison
+### stack operations
 # Standard Library
 - See `std.torch` to lookup constants and implemenetations
 
