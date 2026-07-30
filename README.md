@@ -36,29 +36,31 @@ and run the exectuable
 ./torch
 ```
 #Testing
-- Test cases are located in ./tests/ folder. 
+- Test cases are located in `./tests/` folder. 
 
-- The ./showcase_programs/ contains, well... programs to showcase the language? 
+- The `./showcase_programs/` contains, well... programs to showcase the language? 
+- Some solution for CSES problemset[link](https://cses.fi/problemset/) are in `\CSES\`
 # Usage
-- if you want to use the compiler standone, you only need ./porth executable and the standard library ./std.torch
-- By default, the compiler searches files to include in ./ and ./std/, you can add more search paths to include using the -I flag, : ./porth -I "path> com .... Run ./porth for more info
+- if you want to use the compiler standone, you only need `./porth `executable and the standard library `./std.torch`
+- By default, the compiler searches files to include in `./` and `./std/`, you can add more search paths to include using the `-I` flag, : `./porth -I "path" com ....`.
+Then Run `./porth` for more info on how to use the compiler.
  
 
 - An alternative approach is to use the main.py to compile the program. This is more safe for testing and adding new features than editting the original self-hosted torch.torch file.
 
 # project structure
- common.py -> contains constants and type defintions for the compiler
- const.py -> contains methods related to introducing and storing constant 
- expressions
- diagnostics.py -> compiler error handling
- lexer.py -> lexes file content into tokens
- parse.py -> parses file content into operations
- compiler_generator.py -> emits assembly code to output.asm
- main.py -> invoked to compile the program and link it into and exectuable
- std.torch -> standard libary
- torch.torch -> self-hosted implementation
- ./tests -> contains tests
- ./showcase_programs -> useful example programs
+ + `common.py` -> contains constants and type defintions for the compiler
+ + `const.py` -> contains methods related to introducing and storing constant 
+ + `expressions`
+ + `diagnostics.py` -> compiler error handling
+ + `lexer.py` -> lexes file content into tokens
+ + `parse.py` -> parses file content into operations
+ + `compiler_generator.py` -> emits assembly code to output.asm
+ + `main.py` -> invoked to compile the program and link it into and exectuable
+ + `std.torch` -> standard libary
+ + `torch.torch` -> self-hosted implementation
+ + `./tests` -> contains tests
+ + `./showcase_programs` -> useful example programs
  
 
 
@@ -66,18 +68,17 @@ and run the exectuable
 
 
 # Standard Library
-- See std.torch to lookup constants and details about their implemenetations
+- See `std.torch` to lookup constants and implemenetations
 
 - Some utilities:
-nth_argv -> gets the content of the number of the argument provided
-inc64/inc8 -> increase the 64/8 integer
-dec64/dec8 -> decrease the 64/8 pointer value
-swap64 -> swap two 64 integer numbers
-rand -> get a random number 
-fputs -> outputs formatted string
-isdigit -> determines if the input is/is not a digit
-isalpha -> determines if the input is a character (unicode is not supported)
-memcpy -> copy a portion of memory
-memset -> set a portion of memory
-append-item -> append item to a fixed size array
-(to-do(for me)-> add types and return types for these functions)
++ `nth_argv` -> gets the content of the number of the argument provided
++ `inc64`/`inc8` -> increase the 64/8 integer
++ `dec64`/`dec8` -> decrease the 64/8 pointer value
++ `swap64` -> swap two 64 integer numbers
++ `rand` -> get a random number 
++ `fputs` -> outputs formatted string
++ `isdigit` -> determines if the input is/is not a digit
++ `isalpha` -> determines if the input is a character (unicode is not supported)
++ `memcpy` -> copy a portion of memory
++ `memset` -> set a portion of memory
++ `append-item` -> append item to a fixed size array
