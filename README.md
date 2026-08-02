@@ -32,7 +32,11 @@ end drop
 ```
 python3 main.py com torch.torch 
 ```
-and run the exectuable
+give it exectuable privlidge:
+```
+chmod +x torch
+```
+and run the exectuable 
 ```
 ./torch
 ```
