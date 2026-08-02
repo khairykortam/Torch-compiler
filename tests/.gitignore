@@ -3,4 +3,3 @@
 *.exe
 *.asm
 __pycache__/
-CSES/

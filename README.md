@@ -5,7 +5,8 @@
 you write: 
 ```1 2 +```
 pushing and poping things on the stack in that manner.
-The motives behind making this project are as follows:
+
++ The motives behind making this project are as follows:
 - Develop a fully functional self-hosted compiler, completely written in itself than need no external resources.
 - learn new concepts such as lexers, parsers, bytecode, etc...
 - Study compilers in depth, getting introducted to new concepts such as ABIs(not to be confused with APIs), stack-based languages, assembly instructions, the difference between different assembly archetictures.
@@ -100,12 +101,7 @@ Strings are proccessed as follows:
 - it's a normal string with two differences: it doesn't push it's size on the stack, and it ends with a NULL character.
 
 ## Built-in operations
-### Types
-- `int` -> 64-bit integer
-- `bool` -> boolean
-- `ptr`-> pointer
-- `addr` -> address of function
-- Note: the `--` indicates the return type
+
 ### Arithmetic
 | Name | Signature | Description
 |----------|----------|----------| 
@@ -132,7 +128,12 @@ Strings are proccessed as follows:
 | `<=` | `a:int b:int -- a<=b:bool` | checks if a is less than or equal to b
 | `>=` | `a:int b:int -- a>=b:bool` | checks if a is less than or equal to b
 | `!=` | `a:int b:int -- a!=b:bool` | checks if a doesn't equal to b
-
+### logical operations
+| Name | Signature | Description
+|----------|----------|----------|
+| `lor` | `a:int b:int -- a\|\|b:bool` | logical OR|
+| `land` | `a:int b:int -- a&%b:bool` |logical AND | 
+| `lnot` | `a:int  -- !a:bool` | Logical NOT|
 ### stack operations
 | Name | Signature | Description
 |----------|----------|----------|
