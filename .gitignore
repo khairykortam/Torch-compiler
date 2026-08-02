@@ -1,2 +1,4 @@
-output*
+*.output
+*.o
+torch
 __pycache__/
