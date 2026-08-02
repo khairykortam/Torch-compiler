@@ -133,7 +133,8 @@ Strings are proccessed as follows:
 |----------|----------|----------|
 | `lor` | `a:int b:int -- a\|\|b:bool` | logical OR|
 | `land` | `a:int b:int -- a&%b:bool` |logical AND | 
-| `lnot` | `a:int  -- !a:bool` | Logical NOT|
+| `lnot` | `a:int  -- !a:bool` | Logical NOT
+|
 ### stack operations
 | Name | Signature | Description
 |----------|----------|----------|
