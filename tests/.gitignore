@@ -1,0 +1,5 @@
+*.o
+*.out
+*.exe
+*.asm
+__pycache__/
