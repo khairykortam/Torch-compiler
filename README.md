@@ -125,7 +125,141 @@ Strings are proccessed as follows:
 | `and` | `a:int b:int -- a AND b:int`  |  bitwise `AND`
 | `not` | `a:int -- ~a:int`  |  bitwise `NOT`
 ### comparison
+| Name | Signature | Description
+|----------|----------|----------|
+| `<` | `a:int b:int -- a<b:bool` | checks if a is less than b
+| `>` | `a:int b:int -- a>b:bool` | checks if a is greater than b
+| `<=` | `a:int b:int -- a<=b:bool` | checks if a is less than or equal to b
+| `>=` | `a:int b:int -- a>=b:bool` | checks if a is less than or equal to b
+| `!=` | `a:int b:int -- a!=b:bool` | checks if a doesn't equal to b
+
 ### stack operations
+| Name | Signature | Description
+|----------|----------|----------|
+| `dup` | `a -- a a` | duplicate an element on the top of the stack|
+| `swap` | `a b -- b a` | swap 2 elements on the stack|
+| `drop` | `a -- [Empty]` | deletes the top element on the stack |
+| `over` | `a b -- a b a` | copy the second element on the stack to the top of the stack|
+|`rot` | ` a b c -- b c a` | switch top three elements on the stack | 
+### Memory
+| Name |  Description|
+|----------|----------|
+| `!8`  | store 8-bits at the address on the address on the stack  |
+| `@8`  | load 8-bits from the address on the stack |
+| `!16` |  store 16-bits at the address on the address on the stack  | 
+| `@16` |  load 16-bits from the address on the stack    | 
+| `!32` |   store 32-bits at the address on the address on the stack | 
+| `@32` |  load 32-bits from the address on the stack    | 
+| `!64` |  store 64-bits at the address on the address on the stack  | 
+| `@64`  |  load 64-bits from the address on the stack    | 
+| `cast(int)`     | cast the element on the stack into int|
+| `cast(bool)`      | cast the element on the stack into bool|
+| `cast(ptr)`     | cast the element on the stack into ptr |
+### conditionals
+#### ifing 
+```
+<condition> if 
+<body>
+else <condition> if*
+<body>
+else <condition> if*
+<body>
+....
+else 
+<body>
+end
+```
+
+#### while
+```
+while <condition> do
+<something>
+end
+```
+
+#### switch( soon to be implemented)
+```
+switch i @8 
+case 'x' do <body> end
+case 'y' do <body> end
+......
+defualt do <body> end 
+```
+### functions
+#### func
+- the following is a way to define functions:
+```
+func zeby_manga int in
+while dup 0 > do
+dup print 
+1 -
+end drop
+end
+```
+#### inline 
++ an inline is a function with no return
+```
+inline func ptr+
+ptr int 
+--
+ptr
+in
+swap cast(int)
+swap cast(int)
++
+cast(ptr)
+end
+```
+#### import
++ to import a file:
+```
+import "<file>.torch"
+```
+
+### Memory
+#### Global Memory
++ Global memory is declared outside any function, and is maintained throughout the whole program.
++ example:
+```
+include "std.porth"
+const N 26 end
+memory buf N end
+proc main in
+0 while dup < do
+dup 'a' +
+over buffer +ptr 
+!8
+1 + 
+end drop
+
+N buffer puts "\n" puts
+end
+
+```
+#### Local Memory
++ local memory is declared inside functions, and has limited score to only the function in which the memory is declared.
+#### Constants
+```
+const N 34 end
+const M 35 end
+const O N M + end
+```
+
+### miscullenous
++ `syscall[n]` -> performs a syscall with n arguments. max value for n is 6.
++ `here` -> pushes a string in format "`file-path:row:col`", used mainly for reporting errors and assertions.
++ `argc` -> argument count
++ `argv` -> argument value
+#### Structures
++ the following is a way to do structs 
+```
+include "std.torch"
+
+const Str.count sizeof(int) offset end
+const Str.data sizeof(ptr) offset end
+const sizeof(Str) reset end
+```
+
 # Standard Library
 - See `std.torch` to lookup constants and implemenetations
 
@@ -135,9 +269,14 @@ Strings are proccessed as follows:
 + `dec64`/`dec8` -> decrease the 64/8 pointer value
 + `swap64` -> swap two 64 integer numbers
 + `rand` -> get a random number 
++ `print` -> prints the element on the top of the stack and removes it.
 + `fputs` -> outputs formatted string
++ `eputs` ->
++ `eputu` ->
++ `eput0u` ->
 + `isdigit` -> determines if the input is/is not a digit
 + `isalpha` -> determines if the input is a character (unicode is not supported)
 + `memcpy` -> copy a portion of memory
 + `memset` -> set a portion of memory
 + `append-item` -> append item to a fixed size array
++ `getenv` -> 

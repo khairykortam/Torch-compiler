@@ -22,6 +22,11 @@ class Keyword(Enum):
     OP_ELSE = iota()
     OP_WHILE = iota()
     OP_DO = iota()
+    OP_SWITCH = iota()
+    OP_CASE = iota()
+    OP_DEFAULT = iota()
+    OP_BREAK = iota()
+    OP_CONTINUE = iota()
     END = iota()
     OP_PROC = iota()
     OP_CONST = iota()
@@ -111,6 +116,7 @@ class OpType(Enum):
      END = iota()
      WHILE = iota()
      DO = iota()
+     SWITCH = iota()
      SKIP_PROC = iota()
      PREP_PROC = iota()
      RET = iota()
@@ -159,7 +165,7 @@ ARG_CAPACITY = 640000
 assert len(Keyword) == 17, f"Exhaustive KEYWORD_NAMES definition. {len(Keyword)}"
 KEYWORD_BY_NAMES: Dict[str, Keyword] = {
     "if": Keyword.OP_IF,
-    "if*": Keyword.OP_IFSTAR,
+    "elif": Keyword.OP_IFSTAR,
     "else": Keyword.OP_ELSE,
     "while": Keyword.OP_WHILE,
     "do": Keyword.OP_DO,

@@ -1,0 +1,18 @@
+include "std.torch"
+
+const n 69 end
+memory sum sizeof(u64) end
+memory i sizeof(u64) end
+
+0 sum !64
+1 i !64
+
+true while 
+i @64 n @64 <= 
+do
+sum @64 i @64 + sum !64
+i @64 1 + i !64 
+end
+
+sum @64 puts
+// it seg faults, it need a look, but later
