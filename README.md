@@ -160,9 +160,9 @@ Strings are proccessed as follows:
 ```
 <condition> if 
 <body>
-else <condition> if*
+else <condition> elif
 <body>
-else <condition> if*
+else <condition> elif
 <body>
 ....
 else 
@@ -177,14 +177,7 @@ while <condition> do
 end
 ```
 
-#### switch( soon to be implemented)
-```
-switch i @8 
-case 'x' do <body> end
-case 'y' do <body> end
-......
-defualt do <body> end 
-```
+
 ### functions
 #### func
 - the following is a way to define functions:
@@ -224,7 +217,7 @@ import "<file>.torch"
 include "std.porth"
 const N 26 end
 memory buf N end
-proc main in
+func main in
 0 while dup < do
 dup 'a' +
 over buffer +ptr 

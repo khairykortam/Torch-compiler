@@ -7,7 +7,7 @@ const Loc.row sizeof(u64) offset end
 const Loc.col sizeof(u64) offset end
 const sizeof(Loc) reset end
 
-proc fputloc ptr int in
+func fputloc ptr int in
   memory fd sizeof(u64) end
   fd !64
   dup Loc.file-path ptr+ @Str fd @64 fputs
@@ -17,8 +17,8 @@ proc fputloc ptr int in
   dup Loc.col ptr+ @64        fd @64 fputu
   drop
 end
-inline proc putloc ptr in stdout fputloc end
-inline proc eputloc ptr in stderr fputloc end
+inline func putloc ptr in stdout fputloc end
+inline func eputloc ptr in stderr fputloc end
 /// END Loc  
 
 /// BEGIN Token  
@@ -51,7 +51,7 @@ const KEYWORD_INLINE      1 offset end
 const KEYWORD_HERE        1 offset end
 const COUNT_KEYWORDS         reset end
 
-proc keyword-by-name
+func keyword-by-name
   int ptr
   --
   int bool
@@ -61,22 +61,22 @@ in
   true
   assert "Exhaustive keyword handling" COUNT_KEYWORDS 17 = end
        name @Str "if"      streq if  KEYWORD_IF
-  else name @Str "if*"     streq if* KEYWORD_IFSTAR
-  else name @Str "else"    streq if* KEYWORD_ELSE
-  else name @Str "end"     streq if* KEYWORD_END
-  else name @Str "while"   streq if* KEYWORD_WHILE
-  else name @Str "do"      streq if* KEYWORD_DO
-  else name @Str "include" streq if* KEYWORD_INCLUDE
-  else name @Str "memory"  streq if* KEYWORD_MEMORY
-  else name @Str "proc"    streq if* KEYWORD_PROC
-  else name @Str "const"   streq if* KEYWORD_CONST
-  else name @Str "offset"  streq if* KEYWORD_OFFSET
-  else name @Str "reset"   streq if* KEYWORD_RESET
-  else name @Str "assert"  streq if* KEYWORD_ASSERT
-  else name @Str "in"      streq if* KEYWORD_IN
-  else name @Str "--"      streq if* KEYWORD_BIKESHEDDER
-  else name @Str "inline"  streq if* KEYWORD_INLINE
-  else name @Str "here"    streq if* KEYWORD_HERE
+  else name @Str "elif"     streq elif KEYWORD_IFSTAR
+  else name @Str "else"    streq elif KEYWORD_ELSE
+  else name @Str "end"     streq elif KEYWORD_END
+  else name @Str "while"   streq elif KEYWORD_WHILE
+  else name @Str "do"      streq elif KEYWORD_DO
+  else name @Str "include" streq elif KEYWORD_INCLUDE
+  else name @Str "memory"  streq elif KEYWORD_MEMORY
+  else name @Str "func"    streq elif KEYWORD_PROC
+  else name @Str "const"   streq elif KEYWORD_CONST
+  else name @Str "offset"  streq elif KEYWORD_OFFSET
+  else name @Str "reset"   streq elif KEYWORD_RESET
+  else name @Str "assert"  streq elif KEYWORD_ASSERT
+  else name @Str "in"      streq elif KEYWORD_IN
+  else name @Str "--"      streq elif KEYWORD_BIKESHEDDER
+  else name @Str "inline"  streq elif KEYWORD_INLINE
+  else name @Str "here"    streq elif KEYWORD_HERE
   else
     drop false 0
   end
@@ -84,29 +84,29 @@ in
   swap
 end
 
-proc keyword-name
+func keyword-name
   int
   --
   int ptr
 in
   assert "Exhaustive keyword handling" COUNT_KEYWORDS 17 = end
        dup KEYWORD_IF          = if  "if"
-  else dup KEYWORD_IFSTAR      = if* "if*"
-  else dup KEYWORD_ELSE        = if* "else"
-  else dup KEYWORD_END         = if* "end"
-  else dup KEYWORD_WHILE       = if* "while"
-  else dup KEYWORD_DO          = if* "do"
-  else dup KEYWORD_INCLUDE     = if* "include"
-  else dup KEYWORD_MEMORY      = if* "memory"
-  else dup KEYWORD_PROC        = if* "proc"
-  else dup KEYWORD_CONST       = if* "const"
-  else dup KEYWORD_OFFSET      = if* "offset"
-  else dup KEYWORD_RESET       = if* "reset"
-  else dup KEYWORD_ASSERT      = if* "assert"
-  else dup KEYWORD_IN          = if* "in"
-  else dup KEYWORD_BIKESHEDDER = if* "--"
-  else dup KEYWORD_INLINE      = if* "inline"
-  else dup KEYWORD_HERE        = if* "here"
+  else dup KEYWORD_IFSTAR      = elif "elif"
+  else dup KEYWORD_ELSE        = elif "else"
+  else dup KEYWORD_END         = elif "end"
+  else dup KEYWORD_WHILE       = elif "while"
+  else dup KEYWORD_DO          = elif "do"
+  else dup KEYWORD_INCLUDE     = elif "include"
+  else dup KEYWORD_MEMORY      = elif "memory"
+  else dup KEYWORD_PROC        = elif "func"
+  else dup KEYWORD_CONST       = elif "const"
+  else dup KEYWORD_OFFSET      = elif "offset"
+  else dup KEYWORD_RESET       = elif "reset"
+  else dup KEYWORD_ASSERT      = elif "assert"
+  else dup KEYWORD_IN          = elif "in"
+  else dup KEYWORD_BIKESHEDDER = elif "--"
+  else dup KEYWORD_INLINE      = elif "inline"
+  else dup KEYWORD_HERE        = elif "here"
   else
     0 NULL
     here eputs ": unreachable\n" eputs
@@ -133,8 +133,8 @@ const STRBUF_CAP 32 1024 * end
 memory strbuf-size sizeof(int) end
 memory strbuf-start STRBUF_CAP end
 
-inline proc strbuf-end -- ptr in strbuf-start strbuf-size @int ptr+ end
-proc strbuf-append-char int in
+inline func strbuf-end -- ptr in strbuf-start strbuf-size @int ptr+ end
+func strbuf-append-char int in
   strbuf-size @int STRBUF_CAP >= if
     here eputs ": Assertion Failed: string literal buffer overflow\n" eputs
     1 exit
@@ -144,7 +144,7 @@ proc strbuf-append-char int in
   strbuf-size inc64
 end
 
-proc strbuf-append-str int ptr in
+func strbuf-append-str int ptr in
   memory str sizeof(Str) end
   str !Str
 
@@ -154,7 +154,7 @@ proc strbuf-append-str int ptr in
   end
 end
 
-proc strbuf-loc
+func strbuf-loc
   ptr // loc
   --
   int ptr
@@ -183,7 +183,7 @@ const Lexer.file-path  sizeof(Str) offset end
 const Lexer.row        sizeof(u64) offset end
 const sizeof(Lexer) reset end
 
-proc lexer-next-line ptr in
+func lexer-next-line ptr in
   memory lexer sizeof(ptr) end
   lexer !64
 
@@ -199,7 +199,7 @@ proc lexer-next-line ptr in
   lexer @ptr Lexer.row ptr+ inc64
 end
 
-proc lexer-get-loc
+func lexer-get-loc
   ptr // loc
   ptr // lexer
 in
@@ -228,7 +228,7 @@ in
   !int
 end
 
-proc lexer-consume-str-like-lit
+func lexer-consume-str-like-lit
   ptr // lexer
   int // quote
   --
@@ -259,7 +259,7 @@ in
           dup str-chop-one-left
           true closed !bool
           false
-        else dup @Str.data @8 '\\' = if*
+        else dup @Str.data @8 '\\' = elif
           dup str-chop-one-left
 
           dup ?str-empty if
@@ -273,17 +273,17 @@ in
             dup str-chop-one-left
             count inc64
             true
-          else dup @Str.data @8 '\\' = if*
+          else dup @Str.data @8 '\\' = elif
             '\\' strbuf-append-char
             dup str-chop-one-left
             count inc64
             true
-          else dup @Str.data @8 '\"' = if*
+          else dup @Str.data @8 '\"' = elif
             '\"' strbuf-append-char
             dup str-chop-one-left
             count inc64
             true
-          else dup @Str.data @8 '\'' = if*
+          else dup @Str.data @8 '\'' = elif
             '\'' strbuf-append-char
             dup str-chop-one-left
             count inc64
@@ -307,7 +307,7 @@ in
   count @int start @ptr closed @bool
 end
 
-proc lexer-consume-strlit
+func lexer-consume-strlit
   ptr // lexer
   int // quote
   --
@@ -323,7 +323,7 @@ in
   end
 end
 
-proc lexer-consume-charlit
+func lexer-consume-charlit
   ptr // lexer
   int // quote
   --
@@ -339,7 +339,7 @@ in
   end
 end
 
-proc lexer-next-token
+func lexer-next-token
   ptr // token
   ptr // lexer
   --
@@ -389,7 +389,7 @@ in
        else
          TOKEN_STR token @ptr Token.type ptr+ !64
        end
-    else dup Lexer.line ptr+ @Str.data @8 '\'' = if*
+    else dup Lexer.line ptr+ @Str.data @8 '\'' = elif
        // Character literal
        dup Lexer.line ptr+ str-chop-one-left
        '\'' lexer-consume-charlit word !Str
@@ -413,7 +413,7 @@ in
        word @Str try-parse-int if
          token @ptr Token.value ptr+ !64
          TOKEN_INT token @ptr Token.type ptr+ !64
-       else drop word @Str keyword-by-name if*
+       else drop word @Str keyword-by-name elif
          token @ptr Token.value ptr+ !64
          TOKEN_KEYWORD token @ptr Token.type ptr+ !64
        else drop
@@ -431,7 +431,7 @@ in
   end
 end
 
-proc lex-file ptr in
+func lex-file ptr in
   memory file-path-cstr sizeof(ptr) end
   file-path-cstr !64
 
@@ -455,15 +455,15 @@ proc lex-file ptr in
     token Token.type ptr+ @64 // token.type
     dup TOKEN_INT = if
       "[INTEGER] " puts token Token.value ptr+ @int putu "\n" puts
-    else dup TOKEN_WORD = if*
+    else dup TOKEN_WORD = elif
       "[WORD] " puts token Token.value ptr+ @Str puts "\n" puts
-    else dup TOKEN_STR = if*
+    else dup TOKEN_STR = elif
       "[STR] \"" puts token Token.value ptr+ @Str puts "\"\n" puts
-    else dup TOKEN_CSTR = if*
+    else dup TOKEN_CSTR = elif
       "[CSTR] \"" puts token Token.value ptr+ @Str puts "\"\n" puts
-    else dup TOKEN_CHAR = if*
+    else dup TOKEN_CHAR = elif
       "[CHAR] " puts token Token.value ptr+ @int putu "\n" puts
-    else dup TOKEN_KEYWORD = if*
+    else dup TOKEN_KEYWORD = elif
       "[KEYWORD] " puts token Token.value ptr+ @int keyword-name puts "\n" puts
     else
       here eputs ": Unreachable. Unknown token type.\n" eputs
@@ -523,56 +523,56 @@ const INTRINSIC_SYSCALL6  1 offset end
 const INTRINSIC_???       1 offset end
 const COUNT_INTRINSICS       reset end
 
-proc intrinsic-name
+func intrinsic-name
   int // intrinsic
   --
   int ptr // name
 in
   assert "Exhaustive handling of Intrinsics in intrinsic-name" COUNT_INTRINSICS 44 = end
        dup INTRINSIC_PLUS      = if  drop "ptr+"
-  else dup INTRINSIC_MINUS     = if* drop "-"
-  else dup INTRINSIC_MUL       = if* drop "*"
-  else dup INTRINSIC_DIVMOD    = if* drop "divmod"
-  else dup INTRINSIC_MAX       = if* drop "max"
-  else dup INTRINSIC_PRINT     = if* drop "print"
-  else dup INTRINSIC_EQ        = if* drop "="
-  else dup INTRINSIC_GT        = if* drop ">"
-  else dup INTRINSIC_LT        = if* drop "<"
-  else dup INTRINSIC_GE        = if* drop ">="
-  else dup INTRINSIC_LE        = if* drop "<="
-  else dup INTRINSIC_NE        = if* drop "!="
-  else dup INTRINSIC_SHR       = if* drop "shr"
-  else dup INTRINSIC_SHL       = if* drop "shl"
-  else dup INTRINSIC_OR        = if* drop "or"
-  else dup INTRINSIC_AND       = if* drop "and"
-  else dup INTRINSIC_NOT       = if* drop "not"
-  else dup INTRINSIC_DUP       = if* drop "dup"
-  else dup INTRINSIC_SWAP      = if* drop "swap"
-  else dup INTRINSIC_DROP      = if* drop "drop"
-  else dup INTRINSIC_OVER      = if* drop "over"
-  else dup INTRINSIC_ROT       = if* drop "rot"
-  else dup INTRINSIC_STORE8    = if* drop "!8"
-  else dup INTRINSIC_LOAD8     = if* drop "@8"
-  else dup INTRINSIC_STORE16   = if* drop "!16"
-  else dup INTRINSIC_LOAD16    = if* drop "@16"
-  else dup INTRINSIC_STORE32   = if* drop "!32"
-  else dup INTRINSIC_LOAD32    = if* drop "@32"
-  else dup INTRINSIC_STORE64   = if* drop "!64"
-  else dup INTRINSIC_LOAD64    = if* drop "@64"
-  else dup INTRINSIC_CAST_PTR  = if* drop "cast(ptr)"
-  else dup INTRINSIC_CAST_INT  = if* drop "cast(int)"
-  else dup INTRINSIC_CAST_BOOL = if* drop "cast(bool)"
-  else dup INTRINSIC_ARGC      = if* drop "argc"
-  else dup INTRINSIC_ARGV      = if* drop "argv"
-  else dup INTRINSIC_ENVP      = if* drop "envp"
-  else dup INTRINSIC_SYSCALL0  = if* drop "syscall0"
-  else dup INTRINSIC_SYSCALL1  = if* drop "syscall1"
-  else dup INTRINSIC_SYSCALL2  = if* drop "syscall2"
-  else dup INTRINSIC_SYSCALL3  = if* drop "syscall3"
-  else dup INTRINSIC_SYSCALL4  = if* drop "syscall4"
-  else dup INTRINSIC_SYSCALL5  = if* drop "syscall5"
-  else dup INTRINSIC_SYSCALL6  = if* drop "syscall6"
-  else dup INTRINSIC_???       = if* drop "???"
+  else dup INTRINSIC_MINUS     = elif drop "-"
+  else dup INTRINSIC_MUL       = elif drop "*"
+  else dup INTRINSIC_DIVMOD    = elif drop "divmod"
+  else dup INTRINSIC_MAX       = elif drop "max"
+  else dup INTRINSIC_PRINT     = elif drop "print"
+  else dup INTRINSIC_EQ        = elif drop "="
+  else dup INTRINSIC_GT        = elif drop ">"
+  else dup INTRINSIC_LT        = elif drop "<"
+  else dup INTRINSIC_GE        = elif drop ">="
+  else dup INTRINSIC_LE        = elif drop "<="
+  else dup INTRINSIC_NE        = elif drop "!="
+  else dup INTRINSIC_SHR       = elif drop "shr"
+  else dup INTRINSIC_SHL       = elif drop "shl"
+  else dup INTRINSIC_OR        = elif drop "or"
+  else dup INTRINSIC_AND       = elif drop "and"
+  else dup INTRINSIC_NOT       = elif drop "not"
+  else dup INTRINSIC_DUP       = elif drop "dup"
+  else dup INTRINSIC_SWAP      = elif drop "swap"
+  else dup INTRINSIC_DROP      = elif drop "drop"
+  else dup INTRINSIC_OVER      = elif drop "over"
+  else dup INTRINSIC_ROT       = elif drop "rot"
+  else dup INTRINSIC_STORE8    = elif drop "!8"
+  else dup INTRINSIC_LOAD8     = elif drop "@8"
+  else dup INTRINSIC_STORE16   = elif drop "!16"
+  else dup INTRINSIC_LOAD16    = elif drop "@16"
+  else dup INTRINSIC_STORE32   = elif drop "!32"
+  else dup INTRINSIC_LOAD32    = elif drop "@32"
+  else dup INTRINSIC_STORE64   = elif drop "!64"
+  else dup INTRINSIC_LOAD64    = elif drop "@64"
+  else dup INTRINSIC_CAST_PTR  = elif drop "cast(ptr)"
+  else dup INTRINSIC_CAST_INT  = elif drop "cast(int)"
+  else dup INTRINSIC_CAST_BOOL = elif drop "cast(bool)"
+  else dup INTRINSIC_ARGC      = elif drop "argc"
+  else dup INTRINSIC_ARGV      = elif drop "argv"
+  else dup INTRINSIC_ENVP      = elif drop "envp"
+  else dup INTRINSIC_SYSCALL0  = elif drop "syscall0"
+  else dup INTRINSIC_SYSCALL1  = elif drop "syscall1"
+  else dup INTRINSIC_SYSCALL2  = elif drop "syscall2"
+  else dup INTRINSIC_SYSCALL3  = elif drop "syscall3"
+  else dup INTRINSIC_SYSCALL4  = elif drop "syscall4"
+  else dup INTRINSIC_SYSCALL5  = elif drop "syscall5"
+  else dup INTRINSIC_SYSCALL6  = elif drop "syscall6"
+  else dup INTRINSIC_???       = elif drop "???"
   else
     drop 0 NULL
     here eputs ": unreachable\n" eputs
@@ -580,7 +580,7 @@ in
   end
 end
 
-proc intrinsic-by-name
+func intrinsic-by-name
   int ptr // name
   --
   int     // intrinsic
@@ -591,49 +591,49 @@ in
   true
   assert "Exhaustive handling of Intrinsics in intrinsic-by-name" COUNT_INTRINSICS 44 = end
        name @Str "+"          streq if  INTRINSIC_PLUS
-  else name @Str "-"          streq if* INTRINSIC_MINUS
-  else name @Str "*"          streq if* INTRINSIC_MUL
-  else name @Str "divmod"     streq if* INTRINSIC_DIVMOD
-  else name @Str "max"        streq if* INTRINSIC_MAX
-  else name @Str "print"      streq if* INTRINSIC_PRINT
-  else name @Str "="          streq if* INTRINSIC_EQ
-  else name @Str ">"          streq if* INTRINSIC_GT
-  else name @Str "<"          streq if* INTRINSIC_LT
-  else name @Str ">="         streq if* INTRINSIC_GE
-  else name @Str "<="         streq if* INTRINSIC_LE
-  else name @Str "!="         streq if* INTRINSIC_NE
-  else name @Str "shr"        streq if* INTRINSIC_SHR
-  else name @Str "shl"        streq if* INTRINSIC_SHL
-  else name @Str "or"         streq if* INTRINSIC_OR
-  else name @Str "and"        streq if* INTRINSIC_AND
-  else name @Str "not"        streq if* INTRINSIC_NOT
-  else name @Str "dup"        streq if* INTRINSIC_DUP
-  else name @Str "swap"       streq if* INTRINSIC_SWAP
-  else name @Str "drop"       streq if* INTRINSIC_DROP
-  else name @Str "over"       streq if* INTRINSIC_OVER
-  else name @Str "rot"        streq if* INTRINSIC_ROT
-  else name @Str "!8"         streq if* INTRINSIC_STORE8
-  else name @Str "@8"         streq if* INTRINSIC_LOAD8
-  else name @Str "!16"        streq if* INTRINSIC_STORE16
-  else name @Str "@16"        streq if* INTRINSIC_LOAD16
-  else name @Str "!32"        streq if* INTRINSIC_STORE32
-  else name @Str "@32"        streq if* INTRINSIC_LOAD32
-  else name @Str "!64"        streq if* INTRINSIC_STORE64
-  else name @Str "@64"        streq if* INTRINSIC_LOAD64
-  else name @Str "cast(ptr)"  streq if* INTRINSIC_CAST_PTR
-  else name @Str "cast(int)"  streq if* INTRINSIC_CAST_INT
-  else name @Str "cast(bool)" streq if* INTRINSIC_CAST_BOOL
-  else name @Str "argc"       streq if* INTRINSIC_ARGC
-  else name @Str "argv"       streq if* INTRINSIC_ARGV
-  else name @Str "envp"       streq if* INTRINSIC_ENVP
-  else name @Str "syscall0"   streq if* INTRINSIC_SYSCALL0
-  else name @Str "syscall1"   streq if* INTRINSIC_SYSCALL1
-  else name @Str "syscall2"   streq if* INTRINSIC_SYSCALL2
-  else name @Str "syscall3"   streq if* INTRINSIC_SYSCALL3
-  else name @Str "syscall4"   streq if* INTRINSIC_SYSCALL4
-  else name @Str "syscall5"   streq if* INTRINSIC_SYSCALL5
-  else name @Str "syscall6"   streq if* INTRINSIC_SYSCALL6
-  else name @Str "???"        streq if* INTRINSIC_???
+  else name @Str "-"          streq elif INTRINSIC_MINUS
+  else name @Str "*"          streq elif INTRINSIC_MUL
+  else name @Str "divmod"     streq elif INTRINSIC_DIVMOD
+  else name @Str "max"        streq elif INTRINSIC_MAX
+  else name @Str "print"      streq elif INTRINSIC_PRINT
+  else name @Str "="          streq elif INTRINSIC_EQ
+  else name @Str ">"          streq elif INTRINSIC_GT
+  else name @Str "<"          streq elif INTRINSIC_LT
+  else name @Str ">="         streq elif INTRINSIC_GE
+  else name @Str "<="         streq elif INTRINSIC_LE
+  else name @Str "!="         streq elif INTRINSIC_NE
+  else name @Str "shr"        streq elif INTRINSIC_SHR
+  else name @Str "shl"        streq elif INTRINSIC_SHL
+  else name @Str "or"         streq elif INTRINSIC_OR
+  else name @Str "and"        streq elif INTRINSIC_AND
+  else name @Str "not"        streq elif INTRINSIC_NOT
+  else name @Str "dup"        streq elif INTRINSIC_DUP
+  else name @Str "swap"       streq elif INTRINSIC_SWAP
+  else name @Str "drop"       streq elif INTRINSIC_DROP
+  else name @Str "over"       streq elif INTRINSIC_OVER
+  else name @Str "rot"        streq elif INTRINSIC_ROT
+  else name @Str "!8"         streq elif INTRINSIC_STORE8
+  else name @Str "@8"         streq elif INTRINSIC_LOAD8
+  else name @Str "!16"        streq elif INTRINSIC_STORE16
+  else name @Str "@16"        streq elif INTRINSIC_LOAD16
+  else name @Str "!32"        streq elif INTRINSIC_STORE32
+  else name @Str "@32"        streq elif INTRINSIC_LOAD32
+  else name @Str "!64"        streq elif INTRINSIC_STORE64
+  else name @Str "@64"        streq elif INTRINSIC_LOAD64
+  else name @Str "cast(ptr)"  streq elif INTRINSIC_CAST_PTR
+  else name @Str "cast(int)"  streq elif INTRINSIC_CAST_INT
+  else name @Str "cast(bool)" streq elif INTRINSIC_CAST_BOOL
+  else name @Str "argc"       streq elif INTRINSIC_ARGC
+  else name @Str "argv"       streq elif INTRINSIC_ARGV
+  else name @Str "envp"       streq elif INTRINSIC_ENVP
+  else name @Str "syscall0"   streq elif INTRINSIC_SYSCALL0
+  else name @Str "syscall1"   streq elif INTRINSIC_SYSCALL1
+  else name @Str "syscall2"   streq elif INTRINSIC_SYSCALL2
+  else name @Str "syscall3"   streq elif INTRINSIC_SYSCALL3
+  else name @Str "syscall4"   streq elif INTRINSIC_SYSCALL4
+  else name @Str "syscall5"   streq elif INTRINSIC_SYSCALL5
+  else name @Str "syscall6"   streq elif INTRINSIC_SYSCALL6
+  else name @Str "???"        streq elif INTRINSIC_???
   else
     drop false 0
   end
@@ -651,7 +651,7 @@ const HUMAN_SINGULAR 1 offset end
 const HUMAN_PLURAL   1 offset end
 const COUNT_HUMAN       reset end
 
-proc human-token-type
+func human-token-type
   int // token type
   int // plurality
   --
@@ -665,19 +665,19 @@ in
     dup TOKEN_INT = if
       drop
       "an integer"
-    else dup TOKEN_WORD = if*
+    else dup TOKEN_WORD = elif
       drop
       "a word"
-    else dup TOKEN_STR = if*
+    else dup TOKEN_STR = elif
       drop
       "a string"
-    else dup TOKEN_CSTR = if*
+    else dup TOKEN_CSTR = elif
       drop
       "a C-style string"
-    else dup TOKEN_CHAR = if*
+    else dup TOKEN_CHAR = elif
       drop
       "a character"
-    else dup TOKEN_KEYWORD = if*
+    else dup TOKEN_KEYWORD = elif
       drop
       "a keyword"
     else
@@ -685,25 +685,25 @@ in
       here eputs ": unreachable\n" eputs
       0 NULL
     end
-  else dup HUMAN_PLURAL = if*
+  else dup HUMAN_PLURAL = elif
     drop
     assert "Exhaustive handling of token types" COUNT_TOKENS 6 = end
     dup TOKEN_INT = if
       drop
       "integers"
-    else dup TOKEN_WORD = if*
+    else dup TOKEN_WORD = elif
       drop
       "words"
-    else dup TOKEN_STR = if*
+    else dup TOKEN_STR = elif
       drop
       "strings"
-    else dup TOKEN_CSTR = if*
+    else dup TOKEN_CSTR = elif
       drop
       "C-style strings"
-    else dup TOKEN_CHAR = if*
+    else dup TOKEN_CHAR = elif
       drop
       "characters"
-    else dup TOKEN_KEYWORD = if*
+    else dup TOKEN_KEYWORD = elif
       drop
       "keywords"
     else
@@ -720,7 +720,7 @@ in
   end
 end
 
-proc datatype-by-name
+func datatype-by-name
   int ptr // data type name
   --
   int // data type
@@ -730,20 +730,20 @@ in
   name !Str
   assert "Exhaustive handling of data types in datatype-by-name" COUNT_DATATYPES 3 = end
        name @Str "ptr"  streq if  DATATYPE_PTR  true
-  else name @Str "bool" streq if* DATATYPE_BOOL true
-  else name @Str "int"  streq if* DATATYPE_INT  true
+  else name @Str "bool" streq elif DATATYPE_BOOL true
+  else name @Str "int"  streq elif DATATYPE_INT  true
   else 0 false end
 end
 
-proc datatype-name
+func datatype-name
   int // data type
   --
   int ptr
 in
   assert "Exhaustive handling of data types in datatype-name" COUNT_DATATYPES 3 = end
        dup DATATYPE_INT  = if  drop "int"
-  else dup DATATYPE_BOOL = if* drop "bool"
-  else dup DATATYPE_PTR  = if* drop "ptr"
+  else dup DATATYPE_BOOL = elif drop "bool"
+  else dup DATATYPE_PTR  = elif drop "ptr"
   else
     drop
     0 NULL
@@ -779,31 +779,31 @@ const OP_DO              1 offset end
 const OP_INTRINSIC       1 offset end
 const COUNT_OPS             reset end
 
-proc op-type-as-str
+func op-type-as-str
   int // Op type
   --
   int ptr // str
 in
   assert "Exhaustive handling of Op types in print-op-type" COUNT_OPS 20 = end
        dup OP_START           =  if  "OP_START"
-  else dup OP_PUSH_INT        =  if* "OP_PUSH_INT"
-  else dup OP_PUSH_BOOL       =  if* "OP_PUSH_BOOL"
-  else dup OP_PUSH_PTR        =  if* "OP_PUSH_PTR"
-  else dup OP_PUSH_GLOBAL_MEM =  if* "OP_PUSH_GLOBAL_MEM"
-  else dup OP_PUSH_STR        =  if* "OP_PUSH_STR"
-  else dup OP_PUSH_CSTR       =  if* "OP_PUSH_CSTR"
-  else dup OP_INTRINSIC       =  if* "OP_INTRINSIC"
-  else dup OP_IF              =  if* "OP_IF"
-  else dup OP_IFSTAR          =  if* "OP_IFSTAR"
-  else dup OP_ELSE            =  if* "OP_ELSE"
-  else dup OP_END             =  if* "OP_END"
-  else dup OP_SKIP_PROC       =  if* "OP_SKIP_PROC"
-  else dup OP_PREP_PROC       =  if* "OP_PREP_PROC"
-  else dup OP_RET             =  if* "OP_RET"
-  else dup OP_CALL            =  if* "OP_CALL"
-  else dup OP_INLINED         =  if* "OP_INLINED"
-  else dup OP_WHILE           =  if* "OP_WHILE"
-  else dup OP_DO              =  if* "OP_DO"
+  else dup OP_PUSH_INT        =  elif "OP_PUSH_INT"
+  else dup OP_PUSH_BOOL       =  elif "OP_PUSH_BOOL"
+  else dup OP_PUSH_PTR        =  elif "OP_PUSH_PTR"
+  else dup OP_PUSH_GLOBAL_MEM =  elif "OP_PUSH_GLOBAL_MEM"
+  else dup OP_PUSH_STR        =  elif "OP_PUSH_STR"
+  else dup OP_PUSH_CSTR       =  elif "OP_PUSH_CSTR"
+  else dup OP_INTRINSIC       =  elif "OP_INTRINSIC"
+  else dup OP_IF              =  elif "OP_IF"
+  else dup OP_IFSTAR          =  elif "OP_IFSTAR"
+  else dup OP_ELSE            =  elif "OP_ELSE"
+  else dup OP_END             =  elif "OP_END"
+  else dup OP_SKIP_PROC       =  elif "OP_SKIP_PROC"
+  else dup OP_PREP_PROC       =  elif "OP_PREP_PROC"
+  else dup OP_RET             =  elif "OP_RET"
+  else dup OP_CALL            =  elif "OP_CALL"
+  else dup OP_INLINED         =  elif "OP_INLINED"
+  else dup OP_WHILE           =  elif "OP_WHILE"
+  else dup OP_DO              =  elif "OP_DO"
   else
     here eputs ": Unknown op type\n" eputs 1 exit
     0 NULL
@@ -820,7 +820,7 @@ const OPS_CAP 32 1024 * end
 memory ops-count sizeof(u64) end
 memory ops sizeof(Op) OPS_CAP * end
 
-proc push-op
+func push-op
   int // type
   int // operand
   ptr // token
@@ -836,7 +836,7 @@ in
   drop
 end
 
-inline proc push-op-by-ptr
+inline func push-op-by-ptr
   ptr // ptr to op struct
 in
   dup Op.type    ptr+ @int swap
@@ -845,7 +845,7 @@ in
   push-op
 end
 
-proc dump-ops in
+func dump-ops in
   0
     while dup ops-count @64 < do
       dup sizeof(Op) * ops +ptr
@@ -873,7 +873,7 @@ const STRLITS_CAP 2 1024 * end
 memory strlits-count sizeof(int) end
 memory strlits sizeof(Str) STRLITS_CAP * end
 
-proc strlit-define
+func strlit-define
   int ptr
   --
   int
@@ -903,7 +903,7 @@ const CONST_CAP 1024 end
 memory consts sizeof(Const) CONST_CAP * end
 memory consts-count sizeof(u64) end
 
-proc const-lookup
+func const-lookup
   int ptr // name
   --
   ptr     // ptr to const struct
@@ -927,7 +927,7 @@ in
   end
 end
 
-proc const-define
+func const-define
   ptr // ptr to const struct
 in
   sizeof(Const) swap CONST_CAP consts consts-count append-item lnot if
@@ -952,7 +952,7 @@ const TYPE_FRAME_POOL_CAP 16 1024 * end
 memory type-frame-pool TYPE_FRAME_POOL_CAP sizeof(TypeFrame) * end
 memory type-frame-pool-count sizeof(int) end
 
-proc type-frame-alloc -- ptr in
+func type-frame-alloc -- ptr in
   type-frame-pool-count @int TYPE_FRAME_POOL_CAP >= if
     here eputs ": ERROR: Type Frame Pool overflow! Time to implement proper memory management! Or you can just increase the size of the pool, that will work too. Kappa\n" eputs
     1 exit
@@ -965,7 +965,7 @@ proc type-frame-alloc -- ptr in
   type-frame-pool-count inc64
 end
 
-proc type-stack-push
+func type-stack-push
   int // type
   ptr // Loc
   ptr // stack
@@ -988,7 +988,7 @@ in
   stack   @ptr TypeStack.count ptr+ inc64
 end
 
-proc type-stack-push-frame
+func type-stack-push-frame
   ptr // frame
   ptr // stack
 in
@@ -999,7 +999,7 @@ in
   type-stack-push
 end
 
-proc type-stack-pop
+func type-stack-pop
   ptr // stack
 in
   dup TypeStack.count ptr+ dec64
@@ -1011,9 +1011,9 @@ in
   else drop end
 end
 
-proc ?type-stack-empty ptr -- bool in TypeStack.top ptr+ @ptr NULL ptr= end
+func ?type-stack-empty ptr -- bool in TypeStack.top ptr+ @ptr NULL ptr= end
 
-proc type-stack-dump
+func type-stack-dump
   ptr // type stack
   int // fd
 in
@@ -1031,7 +1031,7 @@ in
   drop
 end
 
-proc type-stack-reverse
+func type-stack-reverse
   ptr // ins
   --
   ptr // outs
@@ -1068,12 +1068,12 @@ const sizeof(Proc)                 reset end
 const PROCS_CAP 1024 end
 memory procs-count sizeof(u64) end
 memory procs sizeof(Proc) PROCS_CAP * end
-memory inside-proc sizeof(bool) end
+memory inside-func sizeof(bool) end
 
-proc proc-lookup-by-name
-  int ptr // proc name
+func func-lookup-by-name
+  int ptr // func name
   --
-  ptr     // proc
+  ptr     // func
 in
   memory name sizeof(Str) end
   name !Str
@@ -1094,10 +1094,10 @@ in
   end
 end
 
-proc proc-lookup-by-addr
-  int // proc addr
+func func-lookup-by-addr
+  int // func addr
   --
-  ptr // proc
+  ptr // func
 in
   memory addr sizeof(int) end
   addr !int
@@ -1118,8 +1118,8 @@ in
 end
 
 
-proc proc-define
-  ptr // proc
+func func-define
+  ptr // func
 in
   sizeof(Proc) swap PROCS_CAP procs procs-count append-item lnot if
     here eputs ": ERROR: procedure definitions capacity exceeded\n" eputs
@@ -1145,12 +1145,12 @@ memory local-memories-count sizeof(u64) end
 memory local-memories sizeof(Memory) LOCAL_MEMORIES_CAP * end
 memory local-memory-capacity sizeof(u64) end
 
-inline proc local-memories-clean in
+inline func local-memories-clean in
   0 local-memories-count !64
   0 local-memory-capacity !64
 end
 
-proc local-memories-lookup
+func local-memories-lookup
   int ptr // name
   --
   ptr     // Memory
@@ -1174,7 +1174,7 @@ in
   end
 end
 
-proc global-memories-lookup
+func global-memories-lookup
   int ptr // name
   --
   ptr     // Memory
@@ -1198,7 +1198,7 @@ in
   end
 end
 
-proc local-memory-define
+func local-memory-define
   ptr
 in
   sizeof(Memory) swap LOCAL_MEMORIES_CAP local-memories local-memories-count append-item lnot if
@@ -1208,7 +1208,7 @@ in
   drop
 end
 
-proc global-memory-define
+func global-memory-define
   ptr
 in
   sizeof(Memory) swap GLOBAL_MEMORIES_CAP global-memories global-memories-count append-item lnot if
@@ -1221,13 +1221,13 @@ end
 
 memory silent sizeof(bool) end
 
-inline proc located-here ptr in eputloc ": NOTE: located here\n" eputs end
+inline func located-here ptr in eputloc ": NOTE: located here\n" eputs end
 
 // TODOO: an option to detect stack overflow at runtime
 const X86_64_RET_STACK_CAP 64 1024 * end
 
 /// BEGIN Code Generator  
-proc fputdecstr
+func fputdecstr
   int ptr
   int
 in
@@ -1254,7 +1254,7 @@ in
   end
 end
 
-proc generate-print-intel-linux-x86_64
+func generate-print-intel-linux-x86_64
   int // fd
 in
   memory out-fd sizeof(int) end
@@ -1294,7 +1294,7 @@ in
   "    ret\n"                              out-fd @64 fputs
 end
 
-proc generate-op-intel-linux-x86_64
+func generate-op-intel-linux-x86_64
   int // ip
   int // out-fd
 in
@@ -1310,26 +1310,26 @@ in
   ":\n"   out-fd @64 fputs
 
        dup Op.type ptr+ @64 OP_START = if
-  else dup Op.type ptr+ @64 OP_PUSH_INT = if*
+  else dup Op.type ptr+ @64 OP_PUSH_INT = elif
      "    mov rax, "        out-fd @64 fputs dup Op.operand ptr+ @64 out-fd @64 fputu "\n"    out-fd @64 fputs
      "    push rax\n"       out-fd @64 fputs
-  else dup Op.type ptr+ @64 OP_PUSH_BOOL = if*
+  else dup Op.type ptr+ @64 OP_PUSH_BOOL = elif
      "    mov rax, "        out-fd @64 fputs dup Op.operand ptr+ @64 out-fd @64 fputu "\n"    out-fd @64 fputs
      "    push rax\n"       out-fd @64 fputs
-  else dup Op.type ptr+ @64 OP_PUSH_PTR = if*
+  else dup Op.type ptr+ @64 OP_PUSH_PTR = elif
      "    mov rax, "        out-fd @64 fputs dup Op.operand ptr+ @64 out-fd @64 fputu "\n"    out-fd @64 fputs
      "    push rax\n"       out-fd @64 fputs
-  else dup Op.type ptr+ @64 OP_PUSH_LOCAL_MEM = if*
+  else dup Op.type ptr+ @64 OP_PUSH_LOCAL_MEM = elif
      "    mov rax, [ret_stack_rsp]\n" out-fd @64 fputs
      "    add rax, "                  out-fd @64 fputs
      dup Op.operand ptr+ @64          out-fd @64 fputu
      "\n"                             out-fd @64 fputs
      "    push rax\n"                 out-fd @64 fputs
-  else dup Op.type ptr+ @64 OP_PUSH_GLOBAL_MEM = if*
+  else dup Op.type ptr+ @64 OP_PUSH_GLOBAL_MEM = elif
      "    mov rax, mem\n" out-fd @64 fputs
      "    add rax, "      out-fd @64 fputs dup Op.operand ptr+ @64 out-fd @64 fputu "\n"    out-fd @64 fputs
      "    push rax\n"     out-fd @64 fputs
-  else dup Op.type ptr+ @64 OP_PUSH_STR = if*
+  else dup Op.type ptr+ @64 OP_PUSH_STR = elif
      "    mov rax, " out-fd @64 fputs
        dup Op.operand ptr+ @64
        sizeof(Str) *
@@ -1342,47 +1342,47 @@ in
      "    push str_"      out-fd @64 fputs
      dup Op.operand ptr+ @64 out-fd @64 fputu
      "\n"                 out-fd @64 fputs
-  else dup Op.type ptr+ @64 OP_PUSH_CSTR = if*
+  else dup Op.type ptr+ @64 OP_PUSH_CSTR = elif
      "    push str_"      out-fd @64 fputs
      dup Op.operand ptr+ @64 out-fd @64 fputu
      "\n"                 out-fd @64 fputs
-  else dup Op.type ptr+ @64 OP_IF = if*
+  else dup Op.type ptr+ @64 OP_IF = elif
      "    pop rax\n"       out-fd @64 fputs
      "    test rax, rax\n" out-fd @64 fputs
      "    jz addr_"        out-fd @64 fputs dup Op.operand ptr+ @64 out-fd @64 fputu "\n" out-fd @64 fputs
-  else dup Op.type ptr+ @64 OP_IFSTAR = if*
+  else dup Op.type ptr+ @64 OP_IFSTAR = elif
      "    pop rax\n"       out-fd @64 fputs
      "    test rax, rax\n" out-fd @64 fputs
      "    jz addr_"        out-fd @64 fputs dup Op.operand ptr+ @64 out-fd @64 fputu "\n" out-fd @64 fputs
-  else dup Op.type ptr+ @64 OP_ELSE = if*
+  else dup Op.type ptr+ @64 OP_ELSE = elif
      "    jmp addr_"       out-fd @64 fputs dup Op.operand ptr+ @64 out-fd @64 fputu "\n" out-fd @64 fputs
-  else dup Op.type ptr+ @64 OP_END = if*
+  else dup Op.type ptr+ @64 OP_END = elif
      "    jmp addr_"       out-fd @64 fputs dup Op.operand ptr+ @64 out-fd @64 fputu "\n" out-fd @64 fputs
-  else dup Op.type ptr+ @64 OP_WHILE = if*
+  else dup Op.type ptr+ @64 OP_WHILE = elif
      // NOTE: nothing to generate. `while` is basically a label
-  else dup Op.type ptr+ @64 OP_DO = if*
+  else dup Op.type ptr+ @64 OP_DO = elif
      "    pop rax\n"       out-fd @64 fputs
      "    test rax, rax\n" out-fd @64 fputs
      "    jz addr_" out-fd @64 fputs dup Op.operand ptr+ @64 out-fd @64 fputu "\n" out-fd @64 fputs
-  else dup Op.type ptr+ @64 OP_SKIP_PROC = if*
+  else dup Op.type ptr+ @64 OP_SKIP_PROC = elif
      "    jmp addr_"      out-fd @64 fputs
      dup Op.operand ptr+ @64 out-fd @64 fputu
      "\n"                 out-fd @64 fputs
-  else dup Op.type ptr+ @64 OP_PREP_PROC = if*
+  else dup Op.type ptr+ @64 OP_PREP_PROC = elif
      "    sub rsp, "      out-fd @64 fputs
      dup Op.operand ptr+ @64 out-fd @64 fputu
      "\n"                 out-fd @64 fputs
 
      "    mov [ret_stack_rsp], rsp\n" out-fd @64 fputs
      "    mov rsp, rax\n"             out-fd @64 fputs
-  else dup Op.type ptr+ @64 OP_RET = if*
+  else dup Op.type ptr+ @64 OP_RET = elif
      "    mov rax, rsp\n"             out-fd @64 fputs
      "    mov rsp, [ret_stack_rsp]\n" out-fd @64 fputs
      "    add rsp, "                  out-fd @64 fputs
      dup Op.operand ptr+ @64             out-fd @64 fputu
      "\n"                             out-fd @64 fputs
      "    ret\n"                      out-fd @64 fputs
-  else dup Op.type ptr+ @64 OP_CALL = if*
+  else dup Op.type ptr+ @64 OP_CALL = elif
      "    mov rax, rsp\n"             out-fd @64 fputs
      "    mov rsp, [ret_stack_rsp]\n" out-fd @64 fputs
      "    call addr_"                 out-fd @64 fputs
@@ -1390,9 +1390,9 @@ in
      "\n"                             out-fd @64 fputs
      "    mov [ret_stack_rsp], rsp\n" out-fd @64 fputs
      "    mov rsp, rax\n"             out-fd @64 fputs
-  else dup Op.type ptr+ @64 OP_INLINED = if*
+  else dup Op.type ptr+ @64 OP_INLINED = elif
      // ignored
-  else dup Op.type ptr+ @64 OP_INTRINSIC = if*
+  else dup Op.type ptr+ @64 OP_INTRINSIC = elif
       assert "Exhaustive handling of Intrinsics in generate-nasm-linux-x86_64"
         COUNT_INTRINSICS 44 =
       end
@@ -1403,57 +1403,57 @@ in
           "    pop rbx\n"             out-fd @64 fputs
           "    add rax, rbx\n"        out-fd @64 fputs
           "    push rax\n"            out-fd @64 fputs
-      else dup INTRINSIC_MINUS = if*
+      else dup INTRINSIC_MINUS = elif
           "    pop rax\n"             out-fd @64 fputs
           "    pop rbx\n"             out-fd @64 fputs
           "    sub rbx, rax\n"        out-fd @64 fputs
           "    push rbx\n"            out-fd @64 fputs
-      else dup INTRINSIC_MUL = if*
+      else dup INTRINSIC_MUL = elif
           "    pop rax\n"             out-fd @64 fputs
           "    pop rbx\n"             out-fd @64 fputs
           "    mul rbx\n"             out-fd @64 fputs
           "    push rax\n"            out-fd @64 fputs
-      else dup INTRINSIC_DIVMOD = if*
+      else dup INTRINSIC_DIVMOD = elif
           "    xor rdx, rdx\n"        out-fd @64 fputs
           "    pop rbx\n"             out-fd @64 fputs
           "    pop rax\n"             out-fd @64 fputs
           "    div rbx\n"             out-fd @64 fputs
           "    push rax\n"            out-fd @64 fputs
           "    push rdx\n"            out-fd @64 fputs
-      else dup INTRINSIC_MAX = if*
+      else dup INTRINSIC_MAX = elif
           "    pop rax\n"         out-fd @64 fputs
           "    pop rbx\n"         out-fd @64 fputs
           "    cmp rbx, rax\n"    out-fd @64 fputs
           "    cmovge rax, rbx\n" out-fd @64 fputs
           "    push rax\n"        out-fd @64 fputs
-      else dup INTRINSIC_SHR = if*
+      else dup INTRINSIC_SHR = elif
           "    pop rcx\n"             out-fd @64 fputs
           "    pop rbx\n"             out-fd @64 fputs
           "    shr rbx, cl\n"         out-fd @64 fputs
           "    push rbx\n"            out-fd @64 fputs
-      else dup INTRINSIC_SHL = if*
+      else dup INTRINSIC_SHL = elif
           "    pop rcx\n"             out-fd @64 fputs
           "    pop rbx\n"             out-fd @64 fputs
           "    shl rbx, cl\n"         out-fd @64 fputs
           "    push rbx\n"            out-fd @64 fputs
-      else dup INTRINSIC_OR = if*
+      else dup INTRINSIC_OR = elif
           "    pop rax\n"             out-fd @64 fputs
           "    pop rbx\n"             out-fd @64 fputs
           "    or rbx, rax\n"         out-fd @64 fputs
           "    push rbx\n"            out-fd @64 fputs
-      else dup INTRINSIC_AND = if*
+      else dup INTRINSIC_AND = elif
           "    pop rax\n"             out-fd @64 fputs
           "    pop rbx\n"             out-fd @64 fputs
           "    and rbx, rax\n"        out-fd @64 fputs
           "    push rbx\n"            out-fd @64 fputs
-      else dup INTRINSIC_NOT = if*
+      else dup INTRINSIC_NOT = elif
           "    pop rax\n"             out-fd @64 fputs
           "    not rax\n"             out-fd @64 fputs
           "    push rax\n"            out-fd @64 fputs
-      else dup INTRINSIC_PRINT = if*
+      else dup INTRINSIC_PRINT = elif
           "    pop rdi\n"             out-fd @64 fputs
           "    call print\n"          out-fd @64 fputs
-      else dup INTRINSIC_EQ = if*
+      else dup INTRINSIC_EQ = elif
           "    mov rcx, 0\n"          out-fd @64 fputs
           "    mov rdx, 1\n"          out-fd @64 fputs
           "    pop rax\n"             out-fd @64 fputs
@@ -1461,7 +1461,7 @@ in
           "    cmp rax, rbx\n"        out-fd @64 fputs
           "    cmove rcx, rdx\n"      out-fd @64 fputs
           "    push rcx\n"            out-fd @64 fputs
-      else dup INTRINSIC_GT = if*
+      else dup INTRINSIC_GT = elif
           "    mov rcx, 0\n"          out-fd @64 fputs
           "    mov rdx, 1\n"          out-fd @64 fputs
           "    pop rbx\n"             out-fd @64 fputs
@@ -1469,7 +1469,7 @@ in
           "    cmp rax, rbx\n"        out-fd @64 fputs
           "    cmovg rcx, rdx\n"      out-fd @64 fputs
           "    push rcx\n"            out-fd @64 fputs
-      else dup INTRINSIC_LT = if*
+      else dup INTRINSIC_LT = elif
           "    mov rcx, 0\n"          out-fd @64 fputs
           "    mov rdx, 1\n"          out-fd @64 fputs
           "    pop rbx\n"             out-fd @64 fputs
@@ -1477,7 +1477,7 @@ in
           "    cmp rax, rbx\n"        out-fd @64 fputs
           "    cmovl rcx, rdx\n"      out-fd @64 fputs
           "    push rcx\n"            out-fd @64 fputs
-      else dup INTRINSIC_GE = if*
+      else dup INTRINSIC_GE = elif
           "    mov rcx, 0\n"          out-fd @64 fputs
           "    mov rdx, 1\n"          out-fd @64 fputs
           "    pop rbx\n"             out-fd @64 fputs
@@ -1485,7 +1485,7 @@ in
           "    cmp rax, rbx\n"        out-fd @64 fputs
           "    cmovge rcx, rdx\n"     out-fd @64 fputs
           "    push rcx\n"            out-fd @64 fputs
-      else dup INTRINSIC_LE = if*
+      else dup INTRINSIC_LE = elif
           "    mov rcx, 0\n"          out-fd @64 fputs
           "    mov rdx, 1\n"          out-fd @64 fputs
           "    pop rbx\n"             out-fd @64 fputs
@@ -1493,7 +1493,7 @@ in
           "    cmp rax, rbx\n"        out-fd @64 fputs
           "    cmovle rcx, rdx\n"     out-fd @64 fputs
           "    push rcx\n"            out-fd @64 fputs
-      else dup INTRINSIC_NE = if*
+      else dup INTRINSIC_NE = elif
           "    mov rcx, 0\n"          out-fd @64 fputs
           "    mov rdx, 1\n"          out-fd @64 fputs
           "    pop rbx\n"             out-fd @64 fputs
@@ -1501,75 +1501,75 @@ in
           "    cmp rax, rbx\n"        out-fd @64 fputs
           "    cmovne rcx, rdx\n"     out-fd @64 fputs
           "    push rcx\n"            out-fd @64 fputs
-      else dup INTRINSIC_DUP = if*
+      else dup INTRINSIC_DUP = elif
           "    pop rax\n"             out-fd @64 fputs
           "    push rax\n"            out-fd @64 fputs
           "    push rax\n"            out-fd @64 fputs
-      else dup INTRINSIC_SWAP = if*
-          "    pop rax\n"             out-fd @64 fputs
-          "    pop rbx\n"             out-fd @64 fputs
-          "    push rax\n"            out-fd @64 fputs
-          "    push rbx\n"            out-fd @64 fputs
-      else dup INTRINSIC_DROP = if*
-          "    pop rax\n"             out-fd @64 fputs
-      else dup INTRINSIC_OVER = if*
+      else dup INTRINSIC_SWAP = elif
           "    pop rax\n"             out-fd @64 fputs
           "    pop rbx\n"             out-fd @64 fputs
+          "    push rax\n"            out-fd @64 fputs
+          "    push rbx\n"            out-fd @64 fputs
+      else dup INTRINSIC_DROP = elif
+          "    pop rax\n"             out-fd @64 fputs
+      else dup INTRINSIC_OVER = elif
+          "    pop rax\n"             out-fd @64 fputs
+          "    pop rbx\n"             out-fd @64 fputs
           "    push rbx\n"            out-fd @64 fputs
           "    push rax\n"            out-fd @64 fputs
           "    push rbx\n"            out-fd @64 fputs
-      else dup INTRINSIC_ROT = if*
+      else dup INTRINSIC_ROT = elif
           "    pop rax\n"             out-fd @64 fputs
           "    pop rbx\n"             out-fd @64 fputs
           "    pop rcx\n"             out-fd @64 fputs
           "    push rbx\n"            out-fd @64 fputs
           "    push rax\n"            out-fd @64 fputs
           "    push rcx\n"            out-fd @64 fputs
-      else dup INTRINSIC_LOAD8 = if*
+      else dup INTRINSIC_LOAD8 = elif
           "    pop rax\n"             out-fd @64 fputs
           "    xor rbx, rbx\n"        out-fd @64 fputs
           "    mov bl, [rax]\n"       out-fd @64 fputs
           "    push rbx\n"            out-fd @64 fputs
-      else dup INTRINSIC_STORE8 = if*
+      else dup INTRINSIC_STORE8 = elif
           "    pop rax\n"             out-fd @64 fputs
           "    pop rbx\n"             out-fd @64 fputs
           "    mov [rax], bl\n"       out-fd @64 fputs
-      else dup INTRINSIC_LOAD16 = if*
+      else dup INTRINSIC_LOAD16 = elif
           "    pop rax\n"             out-fd @64 fputs
           "    xor rbx, rbx\n"        out-fd @64 fputs
           "    mov bx, [rax]\n"       out-fd @64 fputs
           "    push rbx\n"            out-fd @64 fputs
-      else dup INTRINSIC_STORE16 = if*
+      else dup INTRINSIC_STORE16 = elif
           "    pop rax\n"             out-fd @64 fputs
           "    pop rbx\n"             out-fd @64 fputs
           "    mov [rax], bx\n"       out-fd @64 fputs
-      else dup INTRINSIC_LOAD32 = if*
+      else dup INTRINSIC_LOAD32 = elif
           "    pop rax\n"             out-fd @64 fputs
           "    xor rbx, rbx\n"        out-fd @64 fputs
           "    mov ebx, [rax]\n"      out-fd @64 fputs
           "    push rbx\n"            out-fd @64 fputs
-      else dup INTRINSIC_STORE32 = if*
+      else dup INTRINSIC_STORE32 = elif
           "    pop rax\n"             out-fd @64 fputs
           "    pop rbx\n"             out-fd @64 fputs
           "    mov [rax], ebx\n"      out-fd @64 fputs
-      else dup INTRINSIC_LOAD64 = if*
+      else dup INTRINSIC_LOAD64 = elif
           "    pop rax\n"             out-fd @64 fputs
           "    xor rbx, rbx\n"        out-fd @64 fputs
           "    mov rbx, [rax]\n"      out-fd @64 fputs
           "    push rbx\n"            out-fd @64 fputs
-      else dup INTRINSIC_STORE64 = if*
+      else dup INTRINSIC_STORE64 = elif
           "    pop rax\n"             out-fd @64 fputs
           "    pop rbx\n"             out-fd @64 fputs
           "    mov [rax], rbx\n"      out-fd @64 fputs
-      else dup INTRINSIC_ARGC = if*
+      else dup INTRINSIC_ARGC = elif
           "    mov rax, [args_ptr]\n" out-fd @64 fputs
           "    mov rax, [rax]\n"      out-fd @64 fputs
           "    push rax\n"            out-fd @64 fputs
-      else dup INTRINSIC_ARGV = if*
+      else dup INTRINSIC_ARGV = elif
           "    mov rax, [args_ptr]\n" out-fd @64 fputs
           "    add rax, 8\n"          out-fd @64 fputs
           "    push rax\n"            out-fd @64 fputs
-      else dup INTRINSIC_ENVP = if*
+      else dup INTRINSIC_ENVP = elif
           "    mov rax, [args_ptr]\n" out-fd @64 fputs
           "    mov rax, [rax]\n"      out-fd @64 fputs
           "    add rax, 2\n"          out-fd @64 fputs
@@ -1577,32 +1577,32 @@ in
           "    mov rbx, [args_ptr]\n" out-fd @64 fputs
           "    add rbx, rax\n"        out-fd @64 fputs
           "    push rbx\n"            out-fd @64 fputs
-      else dup INTRINSIC_CAST_PTR = if*
-      else dup INTRINSIC_CAST_INT = if*
-      else dup INTRINSIC_CAST_BOOL = if*
-      else dup INTRINSIC_SYSCALL0 = if*
+      else dup INTRINSIC_CAST_PTR = elif
+      else dup INTRINSIC_CAST_INT = elif
+      else dup INTRINSIC_CAST_BOOL = elif
+      else dup INTRINSIC_SYSCALL0 = elif
           "    pop rax\n"             out-fd @64 fputs
           "    syscall\n"             out-fd @64 fputs
           "    push rax\n"            out-fd @64 fputs
-      else dup INTRINSIC_SYSCALL1 = if*
+      else dup INTRINSIC_SYSCALL1 = elif
           "    pop rax\n"             out-fd @64 fputs
           "    pop rdi\n"             out-fd @64 fputs
           "    syscall\n"             out-fd @64 fputs
           "    push rax\n"            out-fd @64 fputs
-      else dup INTRINSIC_SYSCALL2 = if*
+      else dup INTRINSIC_SYSCALL2 = elif
           "    pop rax\n"             out-fd @64 fputs
           "    pop rdi\n"             out-fd @64 fputs
           "    pop rsi\n"             out-fd @64 fputs
           "    syscall\n"             out-fd @64 fputs
           "    push rax\n"            out-fd @64 fputs
-      else dup INTRINSIC_SYSCALL3 = if*
+      else dup INTRINSIC_SYSCALL3 = elif
           "    pop rax\n"             out-fd @64 fputs
           "    pop rdi\n"             out-fd @64 fputs
           "    pop rsi\n"             out-fd @64 fputs
           "    pop rdx\n"             out-fd @64 fputs
           "    syscall\n"             out-fd @64 fputs
           "    push rax\n"            out-fd @64 fputs
-      else dup INTRINSIC_SYSCALL4 = if*
+      else dup INTRINSIC_SYSCALL4 = elif
           "    pop rax\n"             out-fd @64 fputs
           "    pop rdi\n"             out-fd @64 fputs
           "    pop rsi\n"             out-fd @64 fputs
@@ -1610,7 +1610,7 @@ in
           "    pop r10\n"             out-fd @64 fputs
           "    syscall\n"             out-fd @64 fputs
           "    push rax\n"            out-fd @64 fputs
-      else dup INTRINSIC_SYSCALL5 = if*
+      else dup INTRINSIC_SYSCALL5 = elif
           "    pop rax\n"             out-fd @64 fputs
           "    pop rdi\n"             out-fd @64 fputs
           "    pop rsi\n"             out-fd @64 fputs
@@ -1619,7 +1619,7 @@ in
           "    pop r8\n"              out-fd @64 fputs
           "    syscall\n"             out-fd @64 fputs
           "    push rax\n"            out-fd @64 fputs
-      else dup INTRINSIC_SYSCALL6 = if*
+      else dup INTRINSIC_SYSCALL6 = elif
           "    pop rax\n"             out-fd @64 fputs
           "    pop rdi\n"             out-fd @64 fputs
           "    pop rsi\n"             out-fd @64 fputs
@@ -1629,7 +1629,7 @@ in
           "    pop r9\n"              out-fd @64 fputs
           "    syscall\n"             out-fd @64 fputs
           "    push rax\n"            out-fd @64 fputs
-      else dup INTRINSIC_??? = if*
+      else dup INTRINSIC_??? = elif
       else
         here eputs ": unreachable.\n" eputs
         1 exit
@@ -1644,7 +1644,7 @@ in
   drop
 end
 
-proc generate-fasm-linux-x86_64
+func generate-fasm-linux-x86_64
   ptr // file-path
 in
   memory file-path sizeof(ptr) end
@@ -1711,7 +1711,7 @@ in
   out-fd @64 close drop
 end
 
-proc generate-nasm-linux-x86_64
+func generate-nasm-linux-x86_64
   ptr // file-path
 in
   memory file-path sizeof(ptr) end
@@ -1787,10 +1787,10 @@ const FPB_CAP 32 1024 * end
 memory fpb-start FPB_CAP end
 memory fpb-size sizeof(u64) end
 
-inline proc fpb-end -- ptr in fpb-start fpb-size @64 ptr+ end
-inline proc fpb-rewind ptr in fpb-start ptr-diff fpb-size !int end
+inline func fpb-end -- ptr in fpb-start fpb-size @64 ptr+ end
+inline func fpb-rewind ptr in fpb-start ptr-diff fpb-size !int end
 
-proc fpb-alloc
+func fpb-alloc
   int
   --
   ptr // result
@@ -1804,7 +1804,7 @@ in
   fpb-size @64 rot + fpb-size !64
 end
 
-inline proc fpb-append int ptr -- ptr in over fpb-alloc memcpy end
+inline func fpb-append int ptr -- ptr in over fpb-alloc memcpy end
 /// END File Path Buffer  
 
 /// BEGIN Compiler  
@@ -1812,7 +1812,7 @@ const PARSE_BLOCK_STACK_CAP 1024 end
 memory parse-block-stack-count sizeof(u64) end
 memory parse-block-stack sizeof(u64) PARSE_BLOCK_STACK_CAP * end
 
-proc parse-block-stack-push int in
+func parse-block-stack-push int in
   parse-block-stack-count @64 PARSE_BLOCK_STACK_CAP >= if
     here eputs ": ERROR: parse block stack overflow\n" eputs 1 exit
   end
@@ -1820,7 +1820,7 @@ proc parse-block-stack-push int in
   parse-block-stack-count inc64
 end
 
-proc parse-block-stack-pop -- int in
+func parse-block-stack-pop -- int in
   parse-block-stack-count @64 0 = if
     here eputs ": ERROR: parse block stack underflow\n" eputs 1 exit
   end
@@ -1828,7 +1828,7 @@ proc parse-block-stack-pop -- int in
   parse-block-stack parse-block-stack-count @64 sizeof(u64) * ptr+ @64
 end
 
-proc parse-block-stack-top -- int bool in
+func parse-block-stack-top -- int bool in
   parse-block-stack-count @64 0 = if
     0 false
   else
@@ -1846,11 +1846,11 @@ memory const-stack-count sizeof(u64) end
 memory const-stack sizeof(ConstFrame) CONST_STACK_CAP * end
 memory iota sizeof(int) end
 
-inline proc const-stack-clean in
+inline func const-stack-clean in
   0 const-stack-count !64
 end
 
-proc const-stack-push
+func const-stack-push
   int // type
   int // value
 in
@@ -1865,7 +1865,7 @@ in
   drop
 end
 
-proc const-stack-pop
+func const-stack-pop
   --
   int // type
   int // value
@@ -1881,7 +1881,7 @@ in
   swap ConstFrame.value ptr+ @64
 end
 
-proc const-expect-arity
+func const-expect-arity
   int // arity
   ptr // token
 in
@@ -1897,7 +1897,7 @@ in
   end
 end
 
-proc eval-const-value
+func eval-const-value
   ptr // ptr to lexer
   --
   int // type
@@ -1916,7 +1916,7 @@ in
   do
     token Token.type ptr+ @64 TOKEN_INT = if
       DATATYPE_INT token Token.value ptr+ @64 const-stack-push
-    else token Token.type ptr+ @64 TOKEN_WORD = if*
+    else token Token.type ptr+ @64 TOKEN_WORD = elif
       token Token.value ptr+ @Str intrinsic-by-name if
         dup INTRINSIC_CAST_PTR = if
           1 token const-expect-arity
@@ -1924,13 +1924,13 @@ in
           swap drop
           DATATYPE_PTR swap
           const-stack-push
-        else dup INTRINSIC_CAST_BOOL = if*
+        else dup INTRINSIC_CAST_BOOL = elif
           1 token const-expect-arity
           const-stack-pop
           swap drop
           DATATYPE_BOOL swap
           const-stack-push
-        else dup INTRINSIC_MINUS = if*
+        else dup INTRINSIC_MINUS = elif
           2 token const-expect-arity
           // TODO: `-` intrinsic ignores the types in compile time evaluation
           const-stack-pop swap drop
@@ -1938,7 +1938,7 @@ in
           swap
           -
           DATATYPE_INT swap const-stack-push
-        else dup INTRINSIC_PLUS = if*
+        else dup INTRINSIC_PLUS = elif
           2 token const-expect-arity
           // TODO: `+` intrinsic ignores the types in compile time evaluation
           const-stack-pop swap drop
@@ -1946,7 +1946,7 @@ in
           swap
           +
           DATATYPE_INT swap const-stack-push
-        else dup INTRINSIC_MUL = if*
+        else dup INTRINSIC_MUL = elif
           2 token const-expect-arity
           // TODO: `*` intrinsic ignores the types in compile time evaluation
           const-stack-pop swap drop
@@ -1954,7 +1954,7 @@ in
           swap
           *
           DATATYPE_INT swap const-stack-push
-        else dup INTRINSIC_EQ = if*
+        else dup INTRINSIC_EQ = elif
           2 token const-expect-arity
           // TODO: `=` intrinsic ignores the types in compile time evaluation
           const-stack-pop swap drop
@@ -1962,7 +1962,7 @@ in
           swap
           = cast(int)
           DATATYPE_BOOL swap const-stack-push
-        else dup INTRINSIC_MAX = if*
+        else dup INTRINSIC_MAX = elif
           2 token const-expect-arity
           // TODO: `max` intrinsic ignores the types in compile time evaluation
           const-stack-pop swap drop
@@ -1970,7 +1970,7 @@ in
           swap
           max
           DATATYPE_INT swap const-stack-push
-        else dup INTRINSIC_DIVMOD = if*
+        else dup INTRINSIC_DIVMOD = elif
           2 token const-expect-arity
           // TODO: `divmod` intrinsic ignores the types in compile time evaluation
           const-stack-pop swap drop
@@ -1980,18 +1980,18 @@ in
           swap
           DATATYPE_INT swap const-stack-push
           DATATYPE_INT swap const-stack-push
-        else dup INTRINSIC_DROP = if*
+        else dup INTRINSIC_DROP = elif
           1 token const-expect-arity
           const-stack-pop drop drop
         else
           token Token.loc ptr+ eputloc ": ERROR: intrinsic `" eputs token Token.value ptr+ @Str eputs "` is not supported in compile time evaluation\n" eputs
           1 exit
         end
-      else token Token.value ptr+ @Str const-lookup dup NULL ptr!= if*
+      else token Token.value ptr+ @Str const-lookup dup NULL ptr!= elif
         dup Const.type ptr+ @64
         swap Const.value ptr+ @64
         const-stack-push
-      else token Token.value ptr+ @Str try-parse-int if*
+      else token Token.value ptr+ @Str try-parse-int elif
         DATATYPE_PTR swap const-stack-push
         drop // const
       else
@@ -2004,17 +2004,17 @@ in
         1 exit
       end
       drop // intrinsic
-    else token Token.type ptr+ @64 TOKEN_KEYWORD = if*
+    else token Token.type ptr+ @64 TOKEN_KEYWORD = elif
       assert "Exhaustive handling of keywords in eval-const-value" COUNT_KEYWORDS 17 = end
       token Token.value ptr+ @64
         dup KEYWORD_END = if
           true done !64
-        else dup KEYWORD_OFFSET = if*
+        else dup KEYWORD_OFFSET = elif
           1 token const-expect-arity
           const-stack-pop swap drop // TODO: offset ignores the type
           DATATYPE_INT iota @int const-stack-push
           iota @int + iota !int
-        else dup KEYWORD_RESET = if*
+        else dup KEYWORD_RESET = elif
           DATATYPE_INT iota @int const-stack-push
           0 iota !int
         else
@@ -2049,7 +2049,7 @@ in
   end
 end
 
-proc check-name-redefinition
+func check-name-redefinition
   int ptr // name
   ptr     // loc
 in
@@ -2072,7 +2072,7 @@ in
     1 exit
   end drop
 
-  name @Str proc-lookup-by-name dup NULL ptr!= if
+  name @Str func-lookup-by-name dup NULL ptr!= if
     loc eputloc ": ERROR: redefinition of a procedure `" eputs name @Str eputs "`\n" eputs
     dup Proc.loc ptr+ eputloc ": NOTE: the original definition is located here\n" eputs
     1 exit
@@ -2084,7 +2084,7 @@ in
     1 exit
   end drop
 
-  inside-proc @bool lnot if
+  inside-func @bool lnot if
     name @Str global-memories-lookup dup NULL ptr!= if
       loc eputloc ": ERROR: redefinition of a global memory region `" eputs name @Str eputs "`\n" eputs
       dup Memory.loc ptr+ eputloc ": NOTE: the original definition is located here\n" eputs
@@ -2093,7 +2093,7 @@ in
   end
 end
 
-proc parse-proc-contract-list
+func parse-func-contract-list
   ptr  // lexer
   ptr  // type stack
   --
@@ -2127,11 +2127,11 @@ in
           end
           swap
         drop
-      else token Token.type ptr+ @int TOKEN_KEYWORD = if*
+      else token Token.type ptr+ @int TOKEN_KEYWORD = elif
         token Token.value ptr+ @int
           dup KEYWORD_IN = if
             false // break, reached the end of list
-          else dup KEYWORD_BIKESHEDDER = if*
+          else dup KEYWORD_BIKESHEDDER = elif
             true bikeshedder !bool
             false // break, reached the end of list
           else
@@ -2145,7 +2145,7 @@ in
           swap
         drop
       else
-        here eputs ": TODO: report unsupported token type in proc definition \n" eputs
+        here eputs ": TODO: report unsupported token type in func definition \n" eputs
         token Token.loc ptr+ eputloc ": located in here\n" eputs
         1 exit
         false // break, compile error
@@ -2158,7 +2158,7 @@ in
   bikeshedder @bool
 end
 
-proc enclose-while-do
+func enclose-while-do
   int // do-ip
   ptr // token
 in
@@ -2195,8 +2195,8 @@ in
   drop
 end
 
-proc chain-else-if*
-  int // if*-ip
+func chain-else-elif
+  int // elif-ip
   ptr // token
 in
   memory token sizeof(Token) end
@@ -2209,7 +2209,7 @@ in
   ifstar-ip @int sizeof(Op) * ops +ptr ifstar-op !ptr
 
   ifstar-op @ptr Op.type ptr+ @int OP_IFSTAR != if
-    here eputs ": Assertion Failed: expected `if*`\n" eputs
+    here eputs ": Assertion Failed: expected `elif`\n" eputs
     1 exit
   end
 
@@ -2236,8 +2236,8 @@ in
   push-op
 end
 
-proc enclose-else-if*
-  int // ip-if*
+func enclose-else-elif
+  int // ip-elif
   ptr // token
 in
   memory token sizeof(Token) end
@@ -2250,7 +2250,7 @@ in
   ifstar-ip @int sizeof(Op) * ops +ptr ifstar-op !ptr
 
   ifstar-op @ptr Op.type ptr+ @int OP_IFSTAR != if
-    here eputs ": Assertion Failed: expected `if*`\n" eputs
+    here eputs ": Assertion Failed: expected `elif`\n" eputs
     1 exit
   end
 
@@ -2274,7 +2274,7 @@ in
   push-op
 end
 
-proc introduce-proc
+func introduce-func
   ptr // token
   ptr // lexer
   bool // inline
@@ -2287,7 +2287,7 @@ in
   sizeof(Token) swap token memcpy drop
   memory prok sizeof(Proc) end
 
-  inside-proc @bool if
+  inside-func @bool if
     token Token.loc ptr+                                                             eputloc
     ": ERROR: definition procedures inside of procedures is not allowed (for now)\n" eputs
     procs-count @int 1 - sizeof(Proc) * procs +ptr Proc.loc ptr+                     eputloc
@@ -2330,18 +2330,18 @@ in
   OP_PREP_PROC 0 token push-op
 
   prok
-    lexer_ @ptr over Proc.ins ptr+ parse-proc-contract-list if
-      lexer_ @ptr over Proc.outs ptr+ parse-proc-contract-list drop
+    lexer_ @ptr over Proc.ins ptr+ parse-func-contract-list if
+      lexer_ @ptr over Proc.outs ptr+ parse-func-contract-list drop
     end
   drop
 
-  true inside-proc !bool
+  true inside-func !bool
 
-  prok proc-define
+  prok func-define
 end
 
-proc inline-procedure
-  ptr // proc
+func inline-procedure
+  ptr // func
   ptr // token
 in
   memory token sizeof(Token) end
@@ -2370,8 +2370,8 @@ in
   drop
 end
 
-proc current-proc -- ptr in
-  inside-proc @bool if
+func current-func -- ptr in
+  inside-func @bool if
     procs-count @int
     1 -
     sizeof(Proc) *
@@ -2383,7 +2383,7 @@ end
 
 const INCLUDE_LIMIT 100 end
 
-proc compile-file-into-ops
+func compile-file-into-ops
   ptr  // file path cstr
   int  // include level
 in
@@ -2402,7 +2402,7 @@ in
   memory konst sizeof(Const) end
   memory memori sizeof(Memory) end
 
-  false inside-proc !64
+  false inside-func !64
 
   while token lexer lexer-next-token do
     assert "Exhaustive handling of Token types" COUNT_TOKENS 6 = end
@@ -2414,21 +2414,21 @@ in
       token Token.value ptr+ @64
       token
       push-op
-    else dup TOKEN_KEYWORD = if*
+    else dup TOKEN_KEYWORD = elif
       token Token.value ptr+ @64
         dup KEYWORD_IF = if
           ops-count @64 parse-block-stack-push
           OP_IF 0 token push-op
-        else dup KEYWORD_IFSTAR = if*
+        else dup KEYWORD_IFSTAR = elif
           parse-block-stack-top lnot if
-            token Token.loc ptr+ eputloc ": ERROR: `if*` can only come after `else`, but found nothing\n" eputs
+            token Token.loc ptr+ eputloc ": ERROR: `elif` can only come after `else`, but found nothing\n" eputs
             1 exit
           end
 
           sizeof(Op) * ops +ptr
 
           dup Op.type ptr+ @int OP_ELSE != if
-            token Token.loc ptr+ eputloc ": ERROR: `if*` can only come after `else`\n" eputs
+            token Token.loc ptr+ eputloc ": ERROR: `elif` can only come after `else`\n" eputs
             1 exit
           end
 
@@ -2436,10 +2436,10 @@ in
 
           ops-count @64 parse-block-stack-push
           OP_IFSTAR 0 token push-op
-        else dup KEYWORD_ELSE = if*
+        else dup KEYWORD_ELSE = elif
           parse-block-stack-count @64 0 <= if
             token Token.loc ptr+ eputloc
-            ": ERROR: `else` can only come after `if` or `if*`\n" eputs
+            ": ERROR: `else` can only come after `if` or `elif`\n" eputs
             1 exit
           end
 
@@ -2451,20 +2451,20 @@ in
 
             ops-count @64 parse-block-stack-push
             OP_ELSE 0 token push-op
-          else dup Op.type ptr+ @64 OP_IFSTAR = if*
-            over token chain-else-if*
+          else dup Op.type ptr+ @64 OP_IFSTAR = elif
+            over token chain-else-elif
           else
             token Token.loc ptr+ eputloc
-            ": ERROR: `else` can only come after `if` or `if*`\n" eputs
+            ": ERROR: `else` can only come after `if` or `elif`\n" eputs
             1 exit
           end
 
           drop // if_op
           drop // if_ip
-        else dup KEYWORD_WHILE = if*
+        else dup KEYWORD_WHILE = elif
           ops-count @64 parse-block-stack-push
           OP_WHILE 0 token push-op
-        else dup KEYWORD_DO = if*
+        else dup KEYWORD_DO = elif
           parse-block-stack-count @64 0 <= if
             token Token.loc ptr+ eputloc ": ERROR: `do` is not preceded by `while`\n" eputs
             1 exit
@@ -2485,7 +2485,7 @@ in
 
           OP_DO swap token push-op
           drop // op
-        else dup KEYWORD_END = if*
+        else dup KEYWORD_END = elif
           parse-block-stack-count @64 0 <= if
             token Token.loc ptr+ eputloc
             ": ERROR: `end` has nothing to close\n" eputs
@@ -2498,20 +2498,20 @@ in
           dup Op.type ptr+ @64 OP_IF = if
             dup ops-count @64 swap Op.operand ptr+ !64
             OP_END ops-count @64 1 + token push-op
-          else dup Op.type ptr+ @64 OP_IFSTAR = if*
-            over token enclose-else-if*
-          else dup Op.type ptr+ @64 OP_ELSE = if*
+          else dup Op.type ptr+ @64 OP_IFSTAR = elif
+            over token enclose-else-elif
+          else dup Op.type ptr+ @64 OP_ELSE = elif
             dup ops-count @64 swap Op.operand ptr+ !64
             OP_END ops-count @64 1 + token push-op
-          else dup Op.type ptr+ @64 OP_DO = if*
+          else dup Op.type ptr+ @64 OP_DO = elif
             over token enclose-while-do
-          else dup Op.type ptr+ @64 OP_PREP_PROC = if*
+          else dup Op.type ptr+ @64 OP_PREP_PROC = elif
             local-memory-capacity @64
             over Op.operand ptr+
             !64
 
-            inside-proc @bool lnot if
-              here eputs ": Assertion failed: OP_PREP_PROC outside of actual proc\n" eputs
+            inside-func @bool lnot if
+              here eputs ": Assertion failed: OP_PREP_PROC outside of actual func\n" eputs
               1 exit
             end
 
@@ -2540,19 +2540,19 @@ in
             Op.operand ptr+ ops-count @64 swap !64
 
             local-memories-clean
-            false inside-proc !bool
-          else dup Op.type ptr+ @64 OP_SKIP_PROC = if*
+            false inside-func !bool
+          else dup Op.type ptr+ @64 OP_SKIP_PROC = elif
             here eputs ": unreachable\n" eputs
             1 exit
           else
-            token Token.loc ptr+ eputloc ": ERROR: `end` can only close `if`, `if*`, `else`, `do`, or `proc` blocks\n" eputs
+            token Token.loc ptr+ eputloc ": ERROR: `end` can only close `if`, `elif`, `else`, `do`, or `func` blocks\n" eputs
             dup Op.token ptr+ Token.loc ptr+ eputloc ": NOTE: found `" eputs dup Op.token ptr+ Token.text ptr+ @Str eputs "` instead\n" eputs
             1 exit
           end
 
           drop // op
           drop // ip
-        else dup KEYWORD_INCLUDE = if*
+        else dup KEYWORD_INCLUDE = elif
           token lexer lexer-next-token lnot if
             token Token.loc ptr+ eputloc
             ": ERROR: expected path to the include file but found nothing\n" eputs
@@ -2608,7 +2608,7 @@ in
 
           include-level @int 1 +
           compile-file-into-ops
-        else dup KEYWORD_CONST = if*
+        else dup KEYWORD_CONST = elif
           token lexer lexer-next-token lnot if
             token Token.loc ptr+ eputloc
             ": expected constant name but found nothing\n" eputs
@@ -2635,10 +2635,10 @@ in
           konst Const.type ptr+ !64
 
           konst const-define
-        else dup KEYWORD_INLINE = if*
+        else dup KEYWORD_INLINE = elif
           token lexer lexer-next-token lnot if
             token Token.loc ptr+ eputloc
-            ": ERROR: expected `proc` keyword after `inline` but got nothing\n" eputs
+            ": ERROR: expected `func` keyword after `inline` but got nothing\n" eputs
             1 exit
           end
 
@@ -2646,16 +2646,16 @@ in
           token Token.value ptr+ @int KEYWORD_PROC =
           land lnot if
             token Token.loc ptr+                                        eputloc
-            ": ERROR: Expected keyword `proc` after `inline` but got `" eputs
+            ": ERROR: Expected keyword `func` after `inline` but got `" eputs
             token Token.text ptr+ @Str                                  eputs
             "`\n"                                                       eputs
             1 exit
           end
 
-          token lexer true introduce-proc
-        else dup KEYWORD_PROC = if*
-          token lexer false introduce-proc
-        else dup KEYWORD_MEMORY = if*
+          token lexer true introduce-func
+        else dup KEYWORD_PROC = elif
+          token lexer false introduce-func
+        else dup KEYWORD_MEMORY = elif
           token lexer lexer-next-token lnot if
             token Token.loc ptr+ eputloc
             ": expected memory name but found nothing\n" eputs
@@ -2683,7 +2683,7 @@ in
             here eputs ": TODO: memory size must be `int` error\n" eputs 1 exit
           end
 
-          inside-proc @bool if
+          inside-func @bool if
             local-memory-capacity @64 memori Memory.offset ptr+ !64
             local-memory-capacity @64 + local-memory-capacity !64
             memori local-memory-define
@@ -2692,7 +2692,7 @@ in
             global-memory-capacity @64 + global-memory-capacity !64
             memori global-memory-define
           end
-        else dup KEYWORD_ASSERT = if*
+        else dup KEYWORD_ASSERT = elif
           token lexer lexer-next-token lnot if
             token Token.loc ptr+ eputloc
             ": expected assert message but found nothing\n" eputs
@@ -2717,7 +2717,7 @@ in
             token Token.loc ptr+ eputloc ": ERROR: Static Assertion Failed: " eputs token Token.value ptr+ @Str eputs "\n" eputs
             1 exit
           end
-        else dup KEYWORD_HERE = if*
+        else dup KEYWORD_HERE = elif
           OP_PUSH_STR
           token Token.loc ptr+ strbuf-loc strlit-define
           token
@@ -2730,19 +2730,19 @@ in
           1 exit
         end
       drop
-    else dup TOKEN_WORD = if*
+    else dup TOKEN_WORD = elif
       token Token.value ptr+ // token.value
         assert "Exhaustive handling of Op types in compile-file-into-ops" COUNT_OPS 20 = end
         dup @Str intrinsic-by-name if
           OP_INTRINSIC swap token push-op
-        else drop dup @Str const-lookup dup NULL ptr!= if*
+        else drop dup @Str const-lookup dup NULL ptr!= elif
           dup Const.type ptr+ @int
           assert "Exhaustive handling of data types in Const compilation\n" COUNT_DATATYPES 3 = end
           dup DATATYPE_INT = if
             drop OP_PUSH_INT
-          else dup DATATYPE_BOOL = if*
+          else dup DATATYPE_BOOL = elif
             drop OP_PUSH_BOOL
-          else dup DATATYPE_PTR = if*
+          else dup DATATYPE_PTR = elif
             drop OP_PUSH_PTR
           else
             drop 0
@@ -2752,9 +2752,9 @@ in
           swap Const.value ptr+ @64
           token
           push-op
-        else drop dup @Str proc-lookup-by-name dup NULL ptr!= if*
+        else drop dup @Str func-lookup-by-name dup NULL ptr!= elif
           dup Proc.inlinable ptr+ @bool if
-            current-proc
+            current-func
               over over ptr= if
                 token Token.loc ptr+                           eputloc
                 ": ERROR: no recursion in inline procedures\n" eputs
@@ -2770,12 +2770,12 @@ in
             token
             push-op
           end
-        else drop dup @Str local-memories-lookup dup NULL ptr!= if*
+        else drop dup @Str local-memories-lookup dup NULL ptr!= elif
           OP_PUSH_LOCAL_MEM
           swap Memory.offset ptr+ @64
           token
           push-op
-        else drop dup @Str global-memories-lookup dup NULL ptr!= if*
+        else drop dup @Str global-memories-lookup dup NULL ptr!= elif
           OP_PUSH_GLOBAL_MEM
           swap Memory.offset ptr+ @64
           token
@@ -2788,17 +2788,17 @@ in
           1 exit
         end
       drop // token.value
-    else dup TOKEN_STR = if*
+    else dup TOKEN_STR = elif
       OP_PUSH_STR
       token Token.value ptr+ @Str strlit-define
       token
       push-op
-    else dup TOKEN_CSTR = if*
+    else dup TOKEN_CSTR = elif
       OP_PUSH_CSTR
       token Token.value ptr+ @Str strlit-define
       token
       push-op
-    else dup TOKEN_CHAR = if*
+    else dup TOKEN_CHAR = elif
       OP_PUSH_INT
       token Token.value ptr+ @int
       token
@@ -2827,7 +2827,7 @@ in
 end
 /// END Compiler  
 
-proc type-check-frames
+func type-check-frames
   int // args count
   ptr // actual frame
   ptr // expected frame
@@ -2868,7 +2868,7 @@ in
   end
 end
 
-proc expect-arity
+func expect-arity
   ptr // token
   ptr // stack
   int // arity
@@ -2932,7 +2932,7 @@ end
 
 // TODOO: porth.porth allows memory in inline procs for some reason
 
-proc compile-program-into-ops ptr in
+func compile-program-into-ops ptr in
   memory empty-token sizeof(Token) end
   sizeof(Token) 0 empty-token memset drop
 
@@ -2945,7 +2945,7 @@ end
 // TODOOO: rename expect-arity-2 to expect-arity when there are no use cases for the original expect-arity anymore
 // the main difference between them is that expect-arity-2 does not allocate dst in tmp region, but rather accepts it
 // via the arguments
-proc expect-arity-2
+func expect-arity-2
   ptr // token
   ptr // stack
   int // arity
@@ -3004,7 +3004,7 @@ in
   end drop
 end
 
-proc type-check-stack
+func type-check-stack
   ptr // token
   ptr // stack
   ptr // ins
@@ -3062,7 +3062,7 @@ in
   end drop
 end
 
-proc type-check-over
+func type-check-over
   ptr // token
   ptr // stack
 in
@@ -3079,7 +3079,7 @@ in
   ins outs type-check-stack
 end
 
-proc type-check-rot
+func type-check-rot
   ptr // token
   ptr // stack
 in
@@ -3105,7 +3105,7 @@ in
   ins outs type-check-stack
 end
 
-proc type-check-dup
+func type-check-dup
   ptr // token
   ptr // stack
 in
@@ -3122,7 +3122,7 @@ in
   ins outs type-check-stack
 end
 
-proc type-check-binary-int-operator
+func type-check-binary-int-operator
   ptr // token
   ptr // stack
 in
@@ -3140,7 +3140,7 @@ in
   ins outs type-check-stack
 end
 
-proc type-check-if-op
+func type-check-if-op
   ptr // token
   ptr // stack
 in
@@ -3154,7 +3154,7 @@ in
   ins outs type-check-stack
 end
 
-proc type-check-store-operator
+func type-check-store-operator
   ptr // token
   ptr // stack
 in
@@ -3169,7 +3169,7 @@ in
   ins outs type-check-stack
 end
 
-proc type-check-load-operator
+func type-check-load-operator
   ptr // token
   ptr // stack
 in
@@ -3186,7 +3186,7 @@ in
   ins outs type-check-stack
 end
 
-proc type-check-unary-int-operator
+func type-check-unary-int-operator
   ptr // token
   ptr // stack
 in
@@ -3203,7 +3203,7 @@ in
   ins outs type-check-stack
 end
 
-proc type-check-cmp-int-operator
+func type-check-cmp-int-operator
   ptr // token
   ptr // stack
 in
@@ -3221,7 +3221,7 @@ in
   ins outs type-check-stack
 end
 
-proc type-check-divmod-operator
+func type-check-divmod-operator
   ptr // token
   ptr // stack
 in
@@ -3240,7 +3240,7 @@ in
   ins outs type-check-stack
 end
 
-proc type-check-program-from
+func type-check-program-from
   ptr // stack
   int // ip
   ptr // outs
@@ -3275,7 +3275,7 @@ in
       op Op.type ptr+ @int OP_START = if
         ip inc64
         true // continue
-      else op Op.type ptr+ @int OP_PUSH_INT = if*
+      else op Op.type ptr+ @int OP_PUSH_INT = elif
         DATATYPE_INT
         op Op.token ptr+ Token.loc ptr+
         stack
@@ -3284,7 +3284,7 @@ in
         ip inc64
 
         true // continue
-      else op Op.type ptr+ @int OP_PUSH_BOOL = if*
+      else op Op.type ptr+ @int OP_PUSH_BOOL = elif
         DATATYPE_BOOL
         op Op.token ptr+ Token.loc ptr+
         stack
@@ -3293,7 +3293,7 @@ in
         ip inc64
 
         true // continue
-      else op Op.type ptr+ @int OP_PUSH_PTR = if*
+      else op Op.type ptr+ @int OP_PUSH_PTR = elif
         DATATYPE_PTR
         op Op.token ptr+ Token.loc ptr+
         stack
@@ -3302,7 +3302,7 @@ in
         ip inc64
 
         true // continue
-      else op Op.type ptr+ @int OP_PUSH_LOCAL_MEM = if*
+      else op Op.type ptr+ @int OP_PUSH_LOCAL_MEM = elif
         DATATYPE_PTR
         op Op.token ptr+ Token.loc ptr+
         stack
@@ -3311,7 +3311,7 @@ in
         ip inc64
 
         true // continue
-      else op Op.type ptr+ @int OP_PUSH_GLOBAL_MEM = if*
+      else op Op.type ptr+ @int OP_PUSH_GLOBAL_MEM = elif
         DATATYPE_PTR
         op Op.token ptr+ Token.loc ptr+
         stack
@@ -3320,7 +3320,7 @@ in
         ip inc64
 
         true // continue
-      else op Op.type ptr+ @int OP_PUSH_STR = if*
+      else op Op.type ptr+ @int OP_PUSH_STR = elif
         op Op.token ptr+ Token.loc ptr+
           DATATYPE_INT over stack type-stack-push
           DATATYPE_PTR over stack type-stack-push
@@ -3329,7 +3329,7 @@ in
         ip inc64
 
         true // continue
-      else op Op.type ptr+ @int OP_PUSH_CSTR = if*
+      else op Op.type ptr+ @int OP_PUSH_CSTR = elif
         op Op.token ptr+ Token.loc ptr+
           DATATYPE_PTR over stack type-stack-push
         drop
@@ -3337,7 +3337,7 @@ in
         ip inc64
 
         true  // continue
-      else op Op.type ptr+ @int OP_IF = if*
+      else op Op.type ptr+ @int OP_IF = elif
         op Op.token ptr+ stack type-check-if-op
 
         // then branch
@@ -3350,7 +3350,7 @@ in
         // else branch
         op Op.operand ptr+ @int ip !int
         true // continue
-      else op Op.type ptr+ @int OP_IFSTAR = if*
+      else op Op.type ptr+ @int OP_IFSTAR = elif
         op Op.token ptr+ stack type-check-if-op
 
         // then branch
@@ -3363,26 +3363,26 @@ in
         // else branch
         op Op.operand ptr+ @int ip !int
         true // continue
-      else op Op.type ptr+ @int OP_ELSE = if*
+      else op Op.type ptr+ @int OP_ELSE = elif
         op Op.operand ptr+ @int ip !int
         true // continue
-      else op Op.type ptr+ @int OP_END = if*
+      else op Op.type ptr+ @int OP_END = elif
         op Op.operand ptr+ @int ip !int
         true // continue
-      else op Op.type ptr+ @int OP_SKIP_PROC = if*
+      else op Op.type ptr+ @int OP_SKIP_PROC = elif
         op Op.operand ptr+ @int ip !int
         true // continue
-      else op Op.type ptr+ @int OP_PREP_PROC = if*
+      else op Op.type ptr+ @int OP_PREP_PROC = elif
         ip inc64
         true // continue
-      else op Op.type ptr+ @int OP_RET = if*
+      else op Op.type ptr+ @int OP_RET = elif
         false // break, end of the procedure
-      else op Op.type ptr+ @int OP_CALL = if*
+      else op Op.type ptr+ @int OP_CALL = elif
         op Op.token ptr+
         stack
-        op Op.operand ptr+ @int proc-lookup-by-addr
+        op Op.operand ptr+ @int func-lookup-by-addr
           dup NULL ptr= if
-            here eputs ": Assertion Failed: expect proc always exist with this specific address. Something went wrong during the compilation process\n" eputs
+            here eputs ": Assertion Failed: expect func always exist with this specific address. Something went wrong during the compilation process\n" eputs
             1 exit
           end
           dup  Proc.ins  ptr+
@@ -3392,12 +3392,12 @@ in
         ip inc64
 
         true // continue
-      else op Op.type ptr+ @int OP_INLINED = if*
+      else op Op.type ptr+ @int OP_INLINED = elif
         op Op.token ptr+
         stack
-        op Op.operand ptr+ @int proc-lookup-by-addr
+        op Op.operand ptr+ @int func-lookup-by-addr
           dup NULL ptr= if
-            here eputs ": Assertion Failed: expect proc always exist with this specific address. Something went wrong during the compilation process\n" eputs
+            here eputs ": Assertion Failed: expect func always exist with this specific address. Something went wrong during the compilation process\n" eputs
             1 exit
           end
           dup  Proc.ins  ptr+
@@ -3405,9 +3405,9 @@ in
         type-check-stack
 
         ip @int
-        op Op.operand ptr+ @int proc-lookup-by-addr
+        op Op.operand ptr+ @int func-lookup-by-addr
         dup NULL ptr= if
-          here eputs ": Assertion Failed: expect proc always exist with this specific address. Something went wrong during the compilation process\n" eputs
+          here eputs ": Assertion Failed: expect func always exist with this specific address. Something went wrong during the compilation process\n" eputs
           1 exit
         end
         Proc.size ptr+ @int +
@@ -3415,7 +3415,7 @@ in
         ip !int
 
         true // continue
-      else op Op.type ptr+ @int OP_WHILE = if*
+      else op Op.type ptr+ @int OP_WHILE = elif
         ip @int start-ip @int != if
           stack
           ip @int 1 +
@@ -3428,7 +3428,7 @@ in
         else
           false // break, we repeated the loop
         end
-      else op Op.type ptr+ @int OP_DO = if*
+      else op Op.type ptr+ @int OP_DO = elif
         op Op.token ptr+ stack type-check-if-op
 
         // then branch
@@ -3440,51 +3440,51 @@ in
 
         // else branch
         false // break
-      else op Op.type ptr+ @int OP_INTRINSIC = if*
+      else op Op.type ptr+ @int OP_INTRINSIC = elif
         assert "Exhaustive handling of Intrinsics in type-check-program-from" COUNT_INTRINSICS 44 = end
 
         op Op.operand ptr+ @int
           dup INTRINSIC_PLUS = if
             op Op.token ptr+ stack type-check-binary-int-operator
-          else dup INTRINSIC_MINUS = if*
+          else dup INTRINSIC_MINUS = elif
             op Op.token ptr+ stack type-check-binary-int-operator
-          else dup INTRINSIC_MUL = if*
+          else dup INTRINSIC_MUL = elif
             op Op.token ptr+ stack type-check-binary-int-operator
-          else dup INTRINSIC_DIVMOD = if*
+          else dup INTRINSIC_DIVMOD = elif
             op Op.token ptr+ stack type-check-divmod-operator
-          else dup INTRINSIC_MAX = if*
+          else dup INTRINSIC_MAX = elif
             op Op.token ptr+ stack type-check-binary-int-operator
-          else dup INTRINSIC_EQ = if*
+          else dup INTRINSIC_EQ = elif
             op Op.token ptr+ stack type-check-cmp-int-operator
-          else dup INTRINSIC_GT = if*
+          else dup INTRINSIC_GT = elif
             op Op.token ptr+ stack type-check-cmp-int-operator
-          else dup INTRINSIC_LT = if*
+          else dup INTRINSIC_LT = elif
             op Op.token ptr+ stack type-check-cmp-int-operator
-          else dup INTRINSIC_GE = if*
+          else dup INTRINSIC_GE = elif
             op Op.token ptr+ stack type-check-cmp-int-operator
-          else dup INTRINSIC_LE = if*
+          else dup INTRINSIC_LE = elif
             op Op.token ptr+ stack type-check-cmp-int-operator
-          else dup INTRINSIC_NE = if*
+          else dup INTRINSIC_NE = elif
             op Op.token ptr+ stack type-check-cmp-int-operator
-          else dup INTRINSIC_SHR = if*
+          else dup INTRINSIC_SHR = elif
             op Op.token ptr+ stack type-check-binary-int-operator
-          else dup INTRINSIC_SHL = if*
+          else dup INTRINSIC_SHL = elif
             op Op.token ptr+ stack type-check-binary-int-operator
-          else dup INTRINSIC_OR = if*
+          else dup INTRINSIC_OR = elif
             op Op.token ptr+ stack type-check-binary-int-operator
-          else dup INTRINSIC_AND = if*
+          else dup INTRINSIC_AND = elif
             op Op.token ptr+ stack type-check-binary-int-operator
-          else dup INTRINSIC_NOT = if*
+          else dup INTRINSIC_NOT = elif
             op Op.token ptr+ stack type-check-unary-int-operator
-          else dup INTRINSIC_PRINT = if*
+          else dup INTRINSIC_PRINT = elif
             op Op.token ptr+
             stack
             over over 1 expect-arity
             sizeof(TypeStack) tmp-alloc
             type-check-stack
-          else dup INTRINSIC_DUP = if*
+          else dup INTRINSIC_DUP = elif
             op Op.token ptr+ stack type-check-dup
-          else dup INTRINSIC_SWAP = if*
+          else dup INTRINSIC_SWAP = elif
             // token
             op Op.token ptr+
             // stack
@@ -3494,33 +3494,33 @@ in
             // outs
             dup type-stack-reverse
             type-check-stack
-          else dup INTRINSIC_DROP = if*
+          else dup INTRINSIC_DROP = elif
             op Op.token ptr+
             stack
             over over 1 expect-arity
             sizeof(TypeStack) tmp-alloc
             type-check-stack
-          else dup INTRINSIC_OVER = if*
+          else dup INTRINSIC_OVER = elif
             op Op.token ptr+ stack type-check-over
-          else dup INTRINSIC_ROT = if*
+          else dup INTRINSIC_ROT = elif
             op Op.token ptr+ stack type-check-rot
-          else dup INTRINSIC_LOAD8 = if*
+          else dup INTRINSIC_LOAD8 = elif
             op Op.token ptr+ stack type-check-load-operator
-          else dup INTRINSIC_STORE8 = if*
+          else dup INTRINSIC_STORE8 = elif
             op Op.token ptr+ stack type-check-store-operator
-          else dup INTRINSIC_LOAD16 = if*
+          else dup INTRINSIC_LOAD16 = elif
             op Op.token ptr+ stack type-check-load-operator
-          else dup INTRINSIC_STORE16 = if*
+          else dup INTRINSIC_STORE16 = elif
             op Op.token ptr+ stack type-check-store-operator
-          else dup INTRINSIC_LOAD32 = if*
+          else dup INTRINSIC_LOAD32 = elif
             op Op.token ptr+ stack type-check-load-operator
-          else dup INTRINSIC_STORE32 = if*
+          else dup INTRINSIC_STORE32 = elif
             op Op.token ptr+ stack type-check-store-operator
-          else dup INTRINSIC_LOAD64 = if*
+          else dup INTRINSIC_LOAD64 = elif
             op Op.token ptr+ stack type-check-load-operator
-          else dup INTRINSIC_STORE64 = if*
+          else dup INTRINSIC_STORE64 = elif
             op Op.token ptr+ stack type-check-store-operator
-          else dup INTRINSIC_CAST_PTR = if*
+          else dup INTRINSIC_CAST_PTR = elif
             op Op.token ptr+
             stack
             over
@@ -3531,7 +3531,7 @@ in
               swap op Op.token ptr+ Token.loc ptr+
               swap type-stack-push
             type-check-stack
-          else dup INTRINSIC_CAST_INT = if*
+          else dup INTRINSIC_CAST_INT = elif
             op Op.token ptr+
             stack
             over
@@ -3542,7 +3542,7 @@ in
               swap op Op.token ptr+ Token.loc ptr+
               swap type-stack-push
             type-check-stack
-          else dup INTRINSIC_CAST_BOOL = if*
+          else dup INTRINSIC_CAST_BOOL = elif
             op Op.token ptr+
             stack
             over
@@ -3553,22 +3553,22 @@ in
               swap op Op.token ptr+ Token.loc ptr+
               swap type-stack-push
             type-check-stack
-          else dup INTRINSIC_ARGC = if*
+          else dup INTRINSIC_ARGC = elif
             DATATYPE_INT
             op Op.token ptr+ Token.loc ptr+
             stack
             type-stack-push
-          else dup INTRINSIC_ARGV = if*
+          else dup INTRINSIC_ARGV = elif
             DATATYPE_PTR
             op Op.token ptr+ Token.loc ptr+
             stack
             type-stack-push
-          else dup INTRINSIC_ENVP = if*
+          else dup INTRINSIC_ENVP = elif
             DATATYPE_PTR
             op Op.token ptr+ Token.loc ptr+
             stack
             type-stack-push
-          else dup INTRINSIC_SYSCALL0 = if*
+          else dup INTRINSIC_SYSCALL0 = elif
             // token
             op Op.token ptr+
             // stack
@@ -3588,7 +3588,7 @@ in
               swap op Op.token ptr+ Token.loc ptr+
               swap type-stack-push
             type-check-stack
-          else dup INTRINSIC_SYSCALL1 = if*
+          else dup INTRINSIC_SYSCALL1 = elif
             // token
             op Op.token ptr+
             // stack
@@ -3608,7 +3608,7 @@ in
               swap op Op.token ptr+ Token.loc ptr+
               swap type-stack-push
             type-check-stack
-          else dup INTRINSIC_SYSCALL2 = if*
+          else dup INTRINSIC_SYSCALL2 = elif
             // token
             op Op.token ptr+
             // stack
@@ -3628,7 +3628,7 @@ in
               swap op Op.token ptr+ Token.loc ptr+
               swap type-stack-push
             type-check-stack
-          else dup INTRINSIC_SYSCALL3 = if*
+          else dup INTRINSIC_SYSCALL3 = elif
             // token
             op Op.token ptr+
             // stack
@@ -3648,7 +3648,7 @@ in
               swap op Op.token ptr+ Token.loc ptr+
               swap type-stack-push
             type-check-stack
-          else dup INTRINSIC_SYSCALL4 = if*
+          else dup INTRINSIC_SYSCALL4 = elif
             // token
             op Op.token ptr+
             // stack
@@ -3668,7 +3668,7 @@ in
               swap op Op.token ptr+ Token.loc ptr+
               swap type-stack-push
             type-check-stack
-          else dup INTRINSIC_SYSCALL5 = if*
+          else dup INTRINSIC_SYSCALL5 = elif
             // token
             op Op.token ptr+
             // stack
@@ -3688,7 +3688,7 @@ in
               swap op Op.token ptr+ Token.loc ptr+
               swap type-stack-push
             type-check-stack
-          else dup INTRINSIC_SYSCALL6 = if*
+          else dup INTRINSIC_SYSCALL6 = elif
             // token
             op Op.token ptr+
             // stack
@@ -3708,7 +3708,7 @@ in
               swap op Op.token ptr+ Token.loc ptr+
               swap type-stack-push
             type-check-stack
-          else dup INTRINSIC_??? = if*
+          else dup INTRINSIC_??? = elif
             op Op.token ptr+ Token.loc ptr+                             eputloc
             ": DEBUG: Stopping the compilation. Current stack state:\n" eputs
             stack stderr type-stack-dump
@@ -3747,12 +3747,12 @@ in
         dup Op.type ptr+ @int OP_START = if
           here eputs ": unreachable. You can't have unexpected data on the stack at the end of the program because there should be no data at the end of the program" eputs
           69 exit
-        else dup Op.type ptr+ @int OP_WHILE = if*
+        else dup Op.type ptr+ @int OP_WHILE = elif
           dup Op.token ptr+ Token.loc ptr+ eputloc
           dup Op.type ptr+ @int
             ": ERROR: Unexpected data on the stack after a single iteration of the loop. The types and the amount of elements on the stack are not allowed to change between the iterations.\n" eputs
           drop
-        else dup Op.type ptr+ @int OP_PREP_PROC = if*
+        else dup Op.type ptr+ @int OP_PREP_PROC = elif
           dup Op.token ptr+ Token.loc ptr+ eputloc
           dup Op.type ptr+ @int
             ": ERROR: Unexpected data on the stack at the end of the procedure. The expected elements on the stack are listed after the `--` operator.\n" eputs
@@ -3791,12 +3791,12 @@ in
         dup Op.type ptr+ @int OP_START = if
           stack TypeStack.top ptr+ @ptr TypeFrame.loc ptr+ eputloc
           ": ERROR: Unhandled data at the end of the program. At the end of the program execution there should be no elements on the stack. Here are the elements currently on the stack:\n" eputs
-        else dup Op.type ptr+ @int OP_WHILE = if*
+        else dup Op.type ptr+ @int OP_WHILE = elif
           dup Op.token ptr+ Token.loc ptr+ eputloc
           dup Op.type ptr+ @int
             ": ERROR: Unhandled data on the stack after a single iteration of the loop. The types and the amount of elements on the stack are not allowed to change between the iterations. Here are the elements currently on the stack:\n" eputs
           drop
-        else dup Op.type ptr+ @int OP_PREP_PROC = if*
+        else dup Op.type ptr+ @int OP_PREP_PROC = elif
           dup Op.token ptr+ Token.loc ptr+ eputloc
           dup Op.type ptr+ @int
             ": ERROR: Unhandled data on the stack at the end of the procedure. The expected elements on the stack are listed after the `--` operator. Here are the elements currently on the stack:\n" eputs
@@ -3817,12 +3817,12 @@ in
         dup Op.type ptr+ @int OP_START = if
           here eputs ": unreachable. You can't have insufficient data on the stack at the end of the program because there should be no data at the end of the program" eputs
           69 exit
-        else dup Op.type ptr+ @int OP_WHILE = if*
+        else dup Op.type ptr+ @int OP_WHILE = elif
           dup Op.token ptr+ Token.loc ptr+ eputloc
           dup Op.type ptr+ @int
             ": ERROR: Insufficient data on the stack after a single iteration of the loop. The types and the amount of elements on the stack are not allowed to change between the iterations. Here are the elements currently on the stack:\n" eputs
           drop
-        else dup Op.type ptr+ @int OP_PREP_PROC = if*
+        else dup Op.type ptr+ @int OP_PREP_PROC = elif
           dup Op.token ptr+ Token.loc ptr+ eputloc
           dup Op.type ptr+ @int
             ": ERROR: Insufficient data on the stack at the end of the procedure. The expected elements on the stack are listed after the `--` operator. Here are the elements currently on the stack:\n" eputs
@@ -3843,7 +3843,7 @@ in
 end
 
 // TODOO: multi-branch type check error reporting
-proc type-check-program in
+func type-check-program in
   memory prok sizeof(ptr) end
 
   timeit/from-here
@@ -3868,7 +3868,7 @@ proc type-check-program in
   "[INFO] Type checking" silent @bool timeit/to-here
 end
 
-proc summary in
+func summary in
   "Ops count:                    " puts ops-count              @int putu "/" puts OPS_CAP             putu "\n" puts
   "Consts count:                 " puts consts-count           @int putu "/" puts CONST_CAP           putu "\n" puts
   "Procs count:                  " puts procs-count            @int putu "/" puts PROCS_CAP           putu "\n" puts
@@ -3882,7 +3882,7 @@ proc summary in
   "Type Frame size (bytes):      " puts sizeof(TypeFrame) putu "\n" puts
 end
 
-proc usage
+func usage
   ptr // program name
   int // fd
 in
@@ -3914,11 +3914,11 @@ const TARGET_NASM_LINUX_X86_64 1 offset end
 const TARGET_FASM_LINUX_X86_64 1 offset end
 const COUNT_TARGETS               reset end
 
-proc target-name int -- int ptr in
+func target-name int -- int ptr in
   assert "Exhaustive handling of targets in target-name" COUNT_TARGETS 2 = end
   dup TARGET_NASM_LINUX_X86_64 = if
     drop "nasm-linux-x86_64"
-  else dup TARGET_FASM_LINUX_X86_64 = if*
+  else dup TARGET_FASM_LINUX_X86_64 = elif
     drop "fasm-linux-x86_64"
   else
     drop
@@ -3928,13 +3928,13 @@ proc target-name int -- int ptr in
   end
 end
 
-proc target-by-name int ptr -- int bool in
+func target-by-name int ptr -- int bool in
   assert "Exhaustive handling of targets in target-by-name" COUNT_TARGETS 2 = end
   over over "nasm-linux-x86_64" streq if
     drop drop
     TARGET_NASM_LINUX_X86_64
     true
-  else over over "fasm-linux-x86_64" streq if*
+  else over over "fasm-linux-x86_64" streq elif
     drop drop
     TARGET_FASM_LINUX_X86_64
     true
@@ -3948,7 +3948,7 @@ end
 memory args sizeof(ptr) end
 argv args !ptr
 
-proc main in
+func main in
   memory program sizeof(ptr) end
   args @@ptr program !ptr
 
@@ -3962,7 +3962,7 @@ proc main in
     args sizeof(ptr) inc64-by
     args @@ptr NULL ptr= if
       false // break
-    else args @@ptr "-unsafe"c cstreq if*
+    else args @@ptr "-unsafe"c cstreq elif
       true unsafe !bool
       true  // continue
     else
@@ -3986,13 +3986,13 @@ proc main in
       args sizeof(ptr) inc64-by
       args @@ptr NULL ptr= if
         false // break
-      else args @@ptr "-r"c cstreq if*
+      else args @@ptr "-r"c cstreq elif
         true run !bool
         true  // continue
-      else args @@ptr "-s"c cstreq if*
+      else args @@ptr "-s"c cstreq elif
         true silent !bool
         true  // continue
-      else args @@ptr "-t"c cstreq if*
+      else args @@ptr "-t"c cstreq elif
         args sizeof(ptr) inc64-by
         args @@ptr NULL ptr= if
           program @ptr stderr usage
@@ -4058,7 +4058,7 @@ proc main in
       "output.o"c   tmp-append-ptr
       NULL          tmp-append-ptr
       silent @bool lnot cmd-echoed
-    else target @int TARGET_FASM_LINUX_X86_64 = if*
+    else target @int TARGET_FASM_LINUX_X86_64 = elif
       "output.asm"c generate-fasm-linux-x86_64
 
       tmp-end
@@ -4092,10 +4092,10 @@ proc main in
       NULL        tmp-append-ptr
       silent @bool lnot cmd-echoed
     end
-  else args @@ptr "help"c cstreq if*
+  else args @@ptr "help"c cstreq elif
     program @ptr stdout usage
     0 exit
-  else args @@ptr "dump"c cstreq if*
+  else args @@ptr "dump"c cstreq elif
     args sizeof(ptr) inc64-by
     args @@ptr NULL ptr= if
       program @ptr stderr usage
@@ -4107,7 +4107,7 @@ proc main in
     unsafe @bool lnot if type-check-program end
 
     dump-ops
-  else args @@ptr "lex"c cstreq if*
+  else args @@ptr "lex"c cstreq elif
     args sizeof(ptr) inc64-by
     args @@ptr NULL ptr= if
       program @ptr stderr usage
@@ -4116,7 +4116,7 @@ proc main in
     end
 
     args @@ptr lex-file
-  else args @@ptr "summary"c cstreq if*
+  else args @@ptr "summary"c cstreq elif
     args sizeof(ptr) inc64-by
     args @@ptr NULL ptr= if
       program @ptr stderr usage

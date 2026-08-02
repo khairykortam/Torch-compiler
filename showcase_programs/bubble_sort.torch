@@ -5,14 +5,14 @@ const M 67 end
 
 memory xs sizeof(u64) N * end
 
-proc dump-xs in 
+func dump-xs in 
 0 while dup N < do dup sizeof(u64) * xs +ptr @64 putu
 " " puts
 1 + 
 end drop
 end
 
-proc fill-xs in 
+func fill-xs in 
 69 srand
 0 while dup N < do
 rand M mod 
@@ -21,7 +21,7 @@ over sizeof(u64) * xs +ptr !64
 end drop
 end
 
-proc sort-xs in 
+func sort-xs in 
 memory i sizeof(u64) end
 N 1 - i !64
 while i @64 1 > do

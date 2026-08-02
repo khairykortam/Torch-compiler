@@ -118,17 +118,17 @@ def parse_program_from_tokens(ctx, tokens, include_paths=None, included=0):
                     )
                 )
             elif token.value in ctx.procs:
-                proc = ctx.procs[token.value]
-                if proc.inline:
-                    proc_ip = proc.addr
+                func = ctx.procs[token.value]
+                if func.inline:
+                    proc_ip = func.addr
                     assert ctx.ops[proc_ip].typ == OpType.PREP_PROC
                     proc_ip += 1
-                    ctx.ops.append(Op(typ=OpType.INLINED, token=token, operand=proc.addr))
+                    ctx.ops.append(Op(typ=OpType.INLINED, token=token, operand=func.addr))
                     while ctx.ops[proc_ip].typ != OpType.RET:
                         ctx.ops.append(ctx.ops[proc_ip])
                         proc_ip += 1
                 else:
-                    ctx.ops.append(Op(typ=OpType.CALL, token=token, operand=proc.addr))
+                    ctx.ops.append(Op(typ=OpType.CALL, token=token, operand=func.addr))
             elif token.value in ctx.consts:
                 const = ctx.consts[token.value]
                 if const.typ == DataType.INT:
@@ -161,11 +161,11 @@ def parse_program_from_tokens(ctx, tokens, include_paths=None, included=0):
                 ctx.ops.append(Op(typ=OpType.IF, token=token))
             elif token.value == Keyword.OP_IFSTAR:
                 if len(ctx.stack) == 0 :
-                    compiler_error(token.loc, "if* can only come after else")
+                    compiler_error(token.loc, "elif can only come after else")
                     exit(1)
                 else_ip = ctx.stack[-1]
                 if ctx.ops[else_ip].typ != OpType.ELSE:
-                    compiler_error(ctx.ops[else_ip].token.loc, "if* can only come after else")
+                    compiler_error(ctx.ops[else_ip].token.loc, "elif can only come after else")
                     exit(1)
                 ctx.stack.append(len(ctx.ops))
                 ctx.ops.append(Op(typ=OpType.IFSTAR, token=token))
@@ -253,7 +253,7 @@ def parse_program_from_tokens(ctx, tokens, include_paths=None, included=0):
                         else_before_ifstar_ip is not None
                         and ctx.ops[else_before_ifstar_ip].typ == OpType.ELSE
                     ), (
-                        "At this point we should've already checked that `if*` comes after `else`. Otherwise this is a compiler bug."
+                        "At this point we should've already checked that `elif` comes after `else`. Otherwise this is a compiler bug."
                     )
 
                     ctx.ops[block_ip].operand = len(ctx.ops)
@@ -269,7 +269,7 @@ def parse_program_from_tokens(ctx, tokens, include_paths=None, included=0):
                 else:
                     compiler_error(
                         token.loc,
-                        "`end` can only close `if`, `if*`, `else`, `do`, or `proc` blocks",
+                        "`end` can only close `if`, `elif`, `else`, `do`, or `func` blocks",
                     )
                     compiler_note(
                         ctx.ops[block_ip].token.loc,
@@ -329,12 +329,12 @@ def parse_program_from_tokens(ctx, tokens, include_paths=None, included=0):
             
             elif token.value == Keyword.INLINE:
                 if len(rtokens) == 0:
-                    compiler_error(token.loc, "expected `proc` after `inline`")
+                    compiler_error(token.loc, "expected `func` after `inline`")
                     exit(1)
                 
                 token = rtokens.pop()
                 if token.value != Keyword.OP_PROC:
-                    compiler_error(token.loc, "expected `proc` after `inline`")
+                    compiler_error(token.loc, "expected `func` after `inline`")
                     exit(1)
                 
                 introduce_proc(ctx, token, rtokens, inline=True)

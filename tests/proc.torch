@@ -1,6 +1,6 @@
 include "std.torch"
 
-proc testing 
+func testing 
 int 
 int
 in
@@ -10,7 +10,7 @@ end
 1 2 testing 
 2 1 testing 
 
-proc fib in
+func fib in
 0 1 while over 100000 < do
 over 2 mod 0 = if
 over print

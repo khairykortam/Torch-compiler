@@ -22,11 +22,6 @@ class Keyword(Enum):
     OP_ELSE = iota()
     OP_WHILE = iota()
     OP_DO = iota()
-    OP_SWITCH = iota()
-    OP_CASE = iota()
-    OP_DEFAULT = iota()
-    OP_BREAK = iota()
-    OP_CONTINUE = iota()
     END = iota()
     OP_PROC = iota()
     OP_CONST = iota()
@@ -116,7 +111,6 @@ class OpType(Enum):
      END = iota()
      WHILE = iota()
      DO = iota()
-     SWITCH = iota()
      SKIP_PROC = iota()
      PREP_PROC = iota()
      RET = iota()
@@ -171,7 +165,7 @@ KEYWORD_BY_NAMES: Dict[str, Keyword] = {
     "do": Keyword.OP_DO,
     "include": Keyword.INCLUDE,
     "memory": Keyword.MEMORY,
-    "proc": Keyword.OP_PROC,
+    "func": Keyword.OP_PROC,
     "end": Keyword.END,
     "const": Keyword.OP_CONST,
     "offset": Keyword.OP_OFFSET,

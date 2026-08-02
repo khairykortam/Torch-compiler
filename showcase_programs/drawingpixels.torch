@@ -17,7 +17,7 @@ memory blue sizeof(u64) end
 memory fb-size sizeof(u64) end
 memory fb-ptr sizeof(ptr) end
 
-proc main in 
+func main in 
 0
 O_RDWR
 "/dev/fb0"c 

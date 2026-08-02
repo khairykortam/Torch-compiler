@@ -6,13 +6,13 @@ const PIXEL_SIZE 40 end
 const PIXELS_COLS WIDTH PIXEL_SIZE divmod drop end 
 const PIXELS_ROWS HEIGHT PIXEL_SIZE divmod drop end 
 
-proc sum-bytes int -- int in
-memory result sizeof(int) end 
+func sum-bytes int -- int in
+memory result sizeof(ptr) end 
 0 result !int 
 0 while dup 8 < do 
 over 255 and 
-result @int + 
-result !int 
+result @64 + 
+result !64 
 swap 8 shr swap 
 1 +
 end drop drop 
@@ -21,7 +21,7 @@ end
 
 memory pixels PIXELS_ROWS PIXELS_COLS * end 
 
-proc generate-pixels in 
+func generate-pixels in 
 69 srand 
 0 while dup PIXELS_ROWS PIXELS_COLS * < do
 rand sum-bytes 255 and over pixels +ptr !8 
@@ -29,13 +29,16 @@ rand sum-bytes 255 and over pixels +ptr !8
 end drop
 end 
 
-memory file-path sizeof(ptr) end 
-"thumnail"c file-path !ptr 
+memory file-path sizeof(ptr) end
 
-proc main in 
+func main in 
+"billi_eye.ppm"c file-path !ptr 
 generate-pixels
 
-memory fd sizeof(u64) end 
+memory fd sizeof(u64) end
+
+generate-pixels
+
 
 420 
 O_CREAT O_WRONLY or O_TRUNC or 
