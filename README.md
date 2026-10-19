@@ -1,3 +1,6 @@
+# Demo 
+[Compiler demo](screenrecording-2026-10-19_21-11-26.mp4)
+
 # Torch
 - Torch is small, compiled, stack-based(go look: https://en.wikipedia.org/wiki/Stack-oriented_programming), self-hosted procedural programming language (just like Forth and WASM) with some C, ruby, and and python syntax inspired.
 - In some sense, all languages are stack-based, as they utilize the stack one way or another, but stack-based here refers to the syntax i.e the postfix notation used by the language. For instance, instead of :
