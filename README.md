@@ -1,5 +1,5 @@
 # Demo 
-[demo](./screenrecording-2026-10-19_21-11-26.mp4)
+https://github.com/khairykortam/Torch-compiler/raw/refs/heads/main/screenrecording-2026-10-19_21-11-26.mp4
 
 # Torch
 - Torch is small, compiled, stack-based(go look: https://en.wikipedia.org/wiki/Stack-oriented_programming), self-hosted procedural programming language (just like Forth and WASM) with some C, ruby, and and python syntax inspired.
